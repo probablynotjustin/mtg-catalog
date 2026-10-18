@@ -1,947 +1,847 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTG Arena Deckbuilder & Collection Manager</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: Inter & Cinzel for MTG Fantasy Aesthetic -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        arena: {
-                            bg: '#0a0d12',
-                            panel: '#121721',
-                            cardBg: '#1a2230',
-                            border: '#2a364f',
-                            gold: '#d4af37',
-                            goldLight: '#f3e5ab',
-                            goldDark: '#8a6d1c',
-                            cyan: '#00e5ff',
-                            cyanGlow: 'rgba(0, 229, 255, 0.25)',
-                            text: '#e2e8f0',
-                            muted: '#8b9bb4'
-                        },
-                        mtg: {
-                            white: '#fffbd5',
-                            blue: '#aae0fa',
-                            black: '#cbc2bf',
-                            red: '#f9aa8f',
-                            green: '#9bd3ae',
-                            colorless: '#ccc2c0',
-                            gold: '#e3d386'
-                        }
-                    },
-                    fontFamily: {
-                        cinzel: ['Cinzel', 'serif'],
-                        sans: ['Inter', 'sans-serif']
-                    }
-                }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTG Arena Ledger & Archidekt Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            arena: {
+              gold: '#c8a052',
+              darkgold: '#8c6d2d',
+              bg: '#0f141c',
+              card: '#18202c',
+              border: '#2a3648',
+              accent: '#3b82f6',
+              mythic: '#e65c00',
+              rare: '#c8a052',
+              uncommon: '#708090',
+              common: '#a0a0a0'
             }
+          }
         }
-    </script>
-    
-    <style>
-        body {
-            background-color: #0a0d12;
-            color: #e2e8f0;
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-        }
-
-        /* Arena Style Custom Scrollbars */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f141d;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #2a374e;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #d4af37;
-        }
-
-        /* Gold Gradient Borders & Glows */
-        .arena-gold-border {
-            border: 1px solid #d4af37;
-            box-shadow: 0 0 8px rgba(212, 175, 55, 0.25);
-        }
-        .arena-cyan-glow:hover {
-            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
-            border-color: #00e5ff;
-        }
-        .arena-panel-inset {
-            background: radial-gradient(circle at top, #18202d 0%, #0d121a 100%);
-            box-shadow: inset 0 0 12px rgba(0,0,0,0.8);
-        }
-
-        /* Stacked Deck Strip Aesthetic */
-        .deck-card-strip {
-            position: relative;
-            background: linear-gradient(90deg, rgba(20,27,38,0.95) 0%, rgba(28,38,54,0.85) 60%, rgba(15,20,29,0.95) 100%);
-            transition: all 0.15s ease-in-out;
-            border-left: 3px solid #d4af37;
-        }
-        .deck-card-strip:hover {
-            transform: translateX(3px);
-            border-left-color: #00e5ff;
-            background: linear-gradient(90deg, rgba(28,38,54,0.98) 0%, rgba(38,52,74,0.9) 100%);
-        }
-
-        /* Card Tile Aspect Ratio */
-        .card-tile-img {
-            aspect-ratio: 488 / 680;
-            object-fit: cover;
-            border-radius: 0.375rem;
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .card-tile-container:hover .card-tile-img {
-            transform: translateY(-4px) scale(1.02);
-        }
-
-        /* Mana Symbol Badges */
-        .mana-pip {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.3);
-        }
-        .pip-W { background: #fffbd5; color: #333; }
-        .pip-U { background: #0e86d4; color: #fff; }
-        .pip-B { background: #212121; color: #ccc; border-color: #555; }
-        .pip-R { background: #d32f2f; color: #fff; }
-        .pip-G { background: #2e7d32; color: #fff; }
-        .pip-C { background: #9e9e9e; color: #111; }
-        .pip-M { background: linear-gradient(135deg, #fbc02d, #e64a19, #0288d1); color: #fff; }
-    </style>
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@300;400;600;700&display=swap');
+    .font-arena { font-family: 'Cinzel', serif; }
+    .arena-glow { box-shadow: 0 0 15px rgba(200, 160, 82, 0.25); }
+    .arena-glow-lg { box-shadow: 0 0 25px rgba(200, 160, 82, 0.4); }
+    .gold-gradient-text {
+      background: linear-gradient(135deg, #fff2cc 0%, #c8a052 50%, #8c6d2d 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #0f141c; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a3648; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #c8a052; }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col bg-arena-bg text-arena-text">
+<body class="h-full flex flex-col font-sans bg-slate-950 text-slate-100 overflow-hidden custom-scrollbar">
 
-    <!-- TOP ARENA NAVBAR -->
-    <header class="h-14 border-b border-arena-border bg-arena-panel flex items-center justify-between px-4 sticky top-0 z-40 select-none">
-        <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid font-cinzel text-arena-gold text-2xl fa-shield-halved"></i>
-                <span class="font-cinzel font-extrabold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-arena-goldLight via-arena-gold to-arena-goldDark">
-                    ARENA LEDGER
-                </span>
-            </div>
-            
-            <nav class="hidden md:flex space-x-1 ml-6 text-sm font-medium">
-                <button id="nav-deckbuilder" onclick="switchTab('builder')" class="px-3 py-1.5 rounded-t-md border-b-2 border-arena-cyan text-arena-cyan bg-arena-border/30 flex items-center space-x-2">
-                    <i class="fa-solid fa-layer-group"></i> <span>Deckbuilder</span>
-                </button>
-                <button id="nav-samplehand" onclick="switchTab('playtest')" class="px-3 py-1.5 rounded-t-md border-b-2 border-transparent text-arena-muted hover:text-white hover:bg-arena-border/20 flex items-center space-x-2">
-                    <i class="fa-solid fa-hand-sparkles"></i> <span>Sample Hand</span>
-                </button>
-                <button id="nav-admin" onclick="switchTab('admin')" class="px-3 py-1.5 rounded-t-md border-b-2 border-transparent text-arena-muted hover:text-white hover:bg-arena-border/20 flex items-center space-x-2">
-                    <i class="fa-solid fa-sliders"></i> <span>System / Auth</span>
-                </button>
-            </nav>
-        </div>
-
-        <!-- Right Quick Controls -->
-        <div class="flex items-center space-x-3 text-xs">
-            <button onclick="openImportModal()" class="px-3 py-1.5 bg-arena-border hover:bg-arena-border/80 border border-arena-gold/50 text-arena-goldLight rounded flex items-center space-x-1.5 transition">
-                <i class="fa-solid fa-file-import"></i>
-                <span>Import CSV/Deck</span>
-            </button>
-            <button onclick="confirmClearDeck()" class="px-3 py-1.5 bg-red-950/60 hover:bg-red-900 border border-red-700/50 text-red-300 rounded flex items-center space-x-1.5 transition">
-                <i class="fa-solid fa-trash-can"></i>
-                <span>Clear Deck</span>
-            </button>
-            <div id="auth-badge" class="px-2.5 py-1 bg-arena-cardBg border border-arena-border rounded text-arena-muted flex items-center space-x-1">
-                <i class="fa-solid fa-user-shield text-arena-gold"></i>
-                <span id="user-status">Guest Session</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- MAIN APP CONTENT AREA -->
-    <main id="main-content" class="flex-1 flex overflow-hidden">
-        
-        <!-- ================= PAGE 1: ARENA DUAL-PANE DECKBUILDER ================= -->
-        <div id="tab-builder" class="flex-1 flex w-full overflow-hidden">
-            
-            <!-- LEFT PANE: COLLECTION MATRIX (72% Width) -->
-            <section class="w-full lg:w-[73%] flex flex-col border-r border-arena-border bg-arena-bg overflow-hidden">
-                
-                <!-- ARENA FILTER BAR -->
-                <div class="p-3 bg-arena-panel border-b border-arena-border space-y-2 select-none">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        
-                        <!-- Search Box -->
-                        <div class="relative flex-1 min-w-[200px]">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-arena-muted"></i>
-                            <input type="text" id="search-input" oninput="debounceSearch()" placeholder="Search card name, text, or type... (e.g. 'Dragon', 'Counterspell')" 
-                                   class="w-full bg-arena-bg border border-arena-border focus:border-arena-cyan focus:outline-none rounded pl-9 pr-8 py-1.5 text-sm text-arena-text placeholder-arena-muted/60">
-                            <button id="search-clear" onclick="clearSearch()" class="hidden absolute right-2.5 top-2 text-arena-muted hover:text-white">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-
-                        <!-- Color Identity Pips -->
-                        <div class="flex items-center space-x-1 bg-arena-bg p-1 rounded border border-arena-border">
-                            <button onclick="toggleColorFilter('W')" id="btn-color-W" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-W opacity-40 hover:opacity-100 transition">W</button>
-                            <button onclick="toggleColorFilter('U')" id="btn-color-U" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-U opacity-40 hover:opacity-100 transition">U</button>
-                            <button onclick="toggleColorFilter('B')" id="btn-color-B" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-B opacity-40 hover:opacity-100 transition">B</button>
-                            <button onclick="toggleColorFilter('R')" id="btn-color-R" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-R opacity-40 hover:opacity-100 transition">R</button>
-                            <button onclick="toggleColorFilter('G')" id="btn-color-G" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-G opacity-40 hover:opacity-100 transition">G</button>
-                            <button onclick="toggleColorFilter('C')" id="btn-color-C" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-C opacity-40 hover:opacity-100 transition">C</button>
-                            <button onclick="toggleColorFilter('M')" id="btn-color-M" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-M opacity-40 hover:opacity-100 transition">M</button>
-                        </div>
-
-                        <!-- Mana Cost Filters (CMC 0-7+) -->
-                        <div class="flex items-center space-x-1 bg-arena-bg p-1 rounded border border-arena-border text-xs font-semibold">
-                            <button onclick="toggleCmcFilter(0)" id="cmc-0" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">0</button>
-                            <button onclick="toggleCmcFilter(1)" id="cmc-1" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">1</button>
-                            <button onclick="toggleCmcFilter(2)" id="cmc-2" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">2</button>
-                            <button onclick="toggleCmcFilter(3)" id="cmc-3" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">3</button>
-                            <button onclick="toggleCmcFilter(4)" id="cmc-4" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">4</button>
-                            <button onclick="toggleCmcFilter(5)" id="cmc-5" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">5</button>
-                            <button onclick="toggleCmcFilter(6)" id="cmc-6" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">6</button>
-                            <button onclick="toggleCmcFilter(7)" id="cmc-7" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">7+</button>
-                        </div>
-                    </div>
-
-                    <!-- Sub-Filter Line: Type tabs & Format Selection -->
-                    <div class="flex items-center justify-between text-xs pt-1 border-t border-arena-border/40">
-                        <div class="flex space-x-2 overflow-x-auto py-0.5">
-                            <button onclick="setTypeFilter('ALL')" id="type-ALL" class="px-2 py-0.5 rounded text-arena-gold border border-arena-gold/40 bg-arena-gold/10 font-medium">All Types</button>
-                            <button onclick="setTypeFilter('Creature')" id="type-Creature" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Creatures</button>
-                            <button onclick="setTypeFilter('Instant')" id="type-Instant" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Instants</button>
-                            <button onclick="setTypeFilter('Sorcery')" id="type-Sorcery" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Sorceries</button>
-                            <button onclick="setTypeFilter('Planeswalker')" id="type-Planeswalker" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Planeswalkers</button>
-                            <button onclick="setTypeFilter('Enchantment')" id="type-Enchantment" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Enchantments</button>
-                            <button onclick="setTypeFilter('Artifact')" id="type-Artifact" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Artifacts</button>
-                            <button onclick="setTypeFilter('Land')" id="type-Land" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Lands</button>
-                        </div>
-
-                        <div class="flex items-center space-x-2 min-w-max pl-2">
-                            <label class="text-arena-muted text-[11px]">Format:</label>
-                            <select id="format-select" onchange="renderCollection()" class="bg-arena-bg border border-arena-border text-arena-text text-xs rounded px-1.5 py-0.5 focus:outline-none">
-                                <option value="commander" selected>Commander / Brawl (100)</option>
-                                <option value="standard">Standard (60)</option>
-                                <option value="modern">Modern / Pioneer (60)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- COLLECTION GRID CONTAINER -->
-                <div class="flex-1 overflow-y-auto p-4 arena-panel-inset relative">
-                    <!-- Loading overlay -->
-                    <div id="collection-spinner" class="hidden absolute inset-0 bg-arena-bg/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center space-y-3">
-                        <i class="fa-solid fa-circle-notch fa-spin text-3xl text-arena-gold"></i>
-                        <span class="text-sm font-medium text-arena-goldLight">Fetching Scryfall Arcana...</span>
-                    </div>
-
-                    <!-- Card Matrix Grid -->
-                    <div id="collection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                        <!-- Cards injected via JavaScript -->
-                    </div>
-
-                    <!-- Empty State -->
-                    <div id="collection-empty" class="hidden flex flex-col items-center justify-center h-64 text-center text-arena-muted space-y-2">
-                        <i class="fa-solid fa-box-open text-4xl mb-2 text-arena-border"></i>
-                        <p class="font-semibold text-arena-text">No MTG cards matched your criteria.</p>
-                        <p class="text-xs">Try adjusting your filters or search for another card name above.</p>
-                    </div>
-                </div>
-
-                <!-- COLLECTION FOOTER / PAGINATION -->
-                <div class="p-2.5 bg-arena-panel border-t border-arena-border flex items-center justify-between text-xs text-arena-muted">
-                    <span id="collection-count-label">Showing 0 cards</span>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="fetchScryfallPreset('standard')" class="hover:text-arena-gold transition"><i class="fa-solid fa-sync"></i> Reload Standard Staples</button>
-                    </div>
-                </div>
-            </section>
-
-
-            <!-- RIGHT PANE: VERTICAL DECKLIST PANEL (28% Width) -->
-            <section class="w-full lg:w-[27%] flex flex-col bg-arena-panel overflow-hidden border-l border-arena-border">
-                
-                <!-- DECK HEADER & STATS ENGINE -->
-                <div class="p-3 bg-arena-cardBg border-b border-arena-border space-y-3">
-                    <div class="flex items-center justify-between">
-                        <input type="text" id="deck-name-input" value="My Arena Deck" class="bg-transparent font-cinzel font-bold text-arena-gold text-base focus:outline-none border-b border-transparent focus:border-arena-gold w-3/4">
-                        <div class="flex items-center space-x-1">
-                            <button onclick="exportDeckList()" title="Export Text/Archidekt" class="p-1.5 hover:bg-arena-border rounded text-arena-muted hover:text-white">
-                                <i class="fa-solid fa-download"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Mainboard Count Indicator -->
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-arena-muted">Cards in Deck:</span>
-                        <div class="font-bold text-sm">
-                            <span id="deck-total-count" class="text-arena-cyan">0</span>
-                            <span id="deck-target-max" class="text-arena-muted">/ 100</span>
-                        </div>
-                    </div>
-
-                    <!-- ARENA MANA CURVE HISTOGRAM -->
-                    <div class="space-y-1">
-                        <div class="flex items-end justify-between h-14 px-1 pt-2 pb-0 bg-arena-bg/70 rounded border border-arena-border/50" id="mana-curve-bars">
-                            <!-- Bars 1 to 7+ rendered via JavaScript -->
-                        </div>
-                        <div class="flex justify-between text-[10px] text-arena-muted px-2">
-                            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7+</span>
-                        </div>
-                    </div>
-
-                    <!-- COLOR PIP BALANCE DISTRIBUTION BAR -->
-                    <div class="space-y-1 pt-1">
-                        <div class="flex justify-between text-[10px] text-arena-muted">
-                            <span>Color Balance</span>
-                            <span id="color-pip-ratios">W:0 U:0 B:0 R:0 G:0</span>
-                        </div>
-                        <div id="color-distribution-bar" class="h-2 w-full bg-arena-bg rounded-full overflow-hidden flex">
-                            <!-- Multi-color breakdown bar width % -->
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- STACKED ARENA DECK LIST (SCROLLABLE STRIPS) -->
-                <div class="flex-1 overflow-y-auto p-2 space-y-4">
-                    
-                    <!-- Commander / Companion Section -->
-                    <div id="section-commander-container" class="space-y-1">
-                        <div class="flex items-center justify-between text-[11px] font-cinzel text-arena-gold tracking-wider px-1">
-                            <span>COMMANDER / COMPANION</span>
-                            <span id="count-commander" class="text-arena-muted">0</span>
-                        </div>
-                        <div id="list-commander" class="space-y-1">
-                            <!-- Strips injected here -->
-                        </div>
-                    </div>
-
-                    <!-- Mainboard Section -->
-                    <div class="space-y-1">
-                        <div class="flex items-center justify-between text-[11px] font-cinzel text-arena-gold tracking-wider px-1">
-                            <span>MAINBOARD</span>
-                            <span id="count-mainboard" class="text-arena-muted">0</span>
-                        </div>
-                        <div id="list-mainboard" class="space-y-1">
-                            <!-- Strips injected here -->
-                        </div>
-                    </div>
-
-                    <!-- Sideboard / Maybeboard Section -->
-                    <div class="space-y-1">
-                        <div class="flex items-center justify-between text-[11px] font-cinzel text-arena-gold tracking-wider px-1">
-                            <span>SIDEBOARD / MAYBE</span>
-                            <span id="count-sideboard" class="text-arena-muted">0</span>
-                        </div>
-                        <div id="list-sideboard" class="space-y-1">
-                            <!-- Strips injected here -->
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- DECK ACTION FOOTER -->
-                <div class="p-2.5 bg-arena-cardBg border-t border-arena-border flex items-center justify-between">
-                    <button onclick="switchTab('playtest')" class="w-full py-2 bg-gradient-to-r from-arena-goldDark to-arena-gold text-arena-bg font-cinzel font-bold text-xs rounded hover:brightness-110 shadow transition flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-play text-xs"></i>
-                        <span>TEST SAMPLE HAND</span>
-                    </button>
-                </div>
-            </section>
-
-        </div>
-
-
-        <!-- ================= PAGE 2: SAMPLE HAND / PLAYTESTER ================= -->
-        <div id="tab-playtest" class="hidden flex-1 flex flex-col bg-arena-bg p-6 overflow-y-auto">
-            <div class="max-w-6xl mx-auto w-full space-y-6">
-                
-                <!-- Controls Header -->
-                <div class="flex flex-wrap items-center justify-between bg-arena-panel p-4 rounded-lg border border-arena-border gap-4">
-                    <div>
-                        <h2 class="font-cinzel text-xl font-bold text-arena-gold">Arena Sample Hand Simulator</h2>
-                        <p class="text-xs text-arena-muted">Test opening hand probabilities, mulligans, and draw steps for your current deck list.</p>
-                    </div>
-
-                    <div class="flex items-center space-x-3">
-                        <button onclick="drawOpeningHand()" class="px-4 py-2 bg-arena-gold text-arena-bg font-bold rounded text-xs hover:bg-arena-goldLight transition flex items-center space-x-2">
-                            <i class="fa-solid fa-rotate-right"></i>
-                            <span>New 7-Card Hand</span>
-                        </button>
-                        <button onclick="drawOneCard()" class="px-4 py-2 bg-arena-border hover:bg-arena-border/80 border border-arena-cyan/50 text-arena-cyan rounded text-xs transition flex items-center space-x-2">
-                            <i class="fa-solid fa-plus"></i>
-                            <span>Draw 1 Card</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Hand Display -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="font-cinzel text-arena-goldLight">Current Hand (<span id="playtest-hand-count">0</span> cards)</span>
-                        <span id="playtest-deck-rem" class="text-arena-muted text-xs">Library remaining: 0</span>
-                    </div>
-
-                    <div id="playtest-hand-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 min-h-[220px] p-4 bg-arena-panel/50 rounded-lg border border-arena-border/60">
-                        <!-- Card Images injected here -->
-                    </div>
-                </div>
-
-                <!-- Playtest Analytics Panel -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-arena-panel p-4 rounded border border-arena-border space-y-2">
-                        <h3 class="font-cinzel text-sm text-arena-gold font-semibold">Land Odds</h3>
-                        <div class="text-2xl font-bold text-arena-text" id="odds-lands">0 Lands</div>
-                        <p class="text-xs text-arena-muted">Number of lands in opening 7 cards.</p>
-                    </div>
-                    <div class="bg-arena-panel p-4 rounded border border-arena-border space-y-2">
-                        <h3 class="font-cinzel text-sm text-arena-gold font-semibold">Average CMC</h3>
-                        <div class="text-2xl font-bold text-arena-cyan" id="odds-avg-cmc">0.0</div>
-                        <p class="text-xs text-arena-muted">Mana cost average of current hand.</p>
-                    </div>
-                    <div class="bg-arena-panel p-4 rounded border border-arena-border space-y-2">
-                        <h3 class="font-cinzel text-sm text-arena-gold font-semibold">Playability Check</h3>
-                        <div class="text-sm font-medium text-arena-goldLight" id="odds-status">Ready</div>
-                        <p class="text-xs text-arena-muted">Calculated using Arena deck distribution.</p>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-
-        <!-- ================= PAGE 3: ADMIN & AUTH SETTINGS ================= -->
-        <div id="tab-admin" class="hidden flex-1 flex flex-col bg-arena-bg p-6 overflow-y-auto">
-            <div class="max-w-4xl mx-auto w-full space-y-6">
-                
-                <div class="bg-arena-panel p-6 rounded-lg border border-arena-border space-y-4">
-                    <h2 class="font-cinzel text-xl font-bold text-arena-gold">System Configuration & Cloud Sync</h2>
-                    <p class="text-xs text-arena-muted">Manage your Arena Collection local database, cloud auth tokens, and Archidekt importer options.</p>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-arena-border">
-                        <!-- Storage Status -->
-                        <div class="p-4 bg-arena-bg rounded border border-arena-border space-y-2">
-                            <h3 class="font-semibold text-sm text-arena-goldLight"><i class="fa-solid fa-database mr-2"></i>Local Ledger Storage</h3>
-                            <p class="text-xs text-arena-muted">Decks and cached collection are automatically saved in local browser state.</p>
-                            <div class="pt-2 flex space-x-2">
-                                <button onclick="saveDeckToStorage()" class="px-3 py-1.5 bg-arena-gold text-arena-bg font-bold text-xs rounded hover:bg-arena-goldLight">Save Progress</button>
-                                <button onclick="clearLocalStorage()" class="px-3 py-1.5 bg-red-900/60 text-red-200 text-xs rounded hover:bg-red-800">Reset Local Memory</button>
-                            </div>
-                        </div>
-
-                        <!-- Scryfall API Controls -->
-                        <div class="p-4 bg-arena-bg rounded border border-arena-border space-y-2">
-                            <h3 class="font-semibold text-sm text-arena-goldLight"><i class="fa-solid fa-cloud-arrow-down mr-2"></i>Scryfall Cache Engine</h3>
-                            <p class="text-xs text-arena-muted">Fetch fresh card datasets directly from Scryfall API.</p>
-                            <div class="pt-2">
-                                <button onclick="fetchScryfallPreset('commander')" class="px-3 py-1.5 bg-arena-border text-arena-text border border-arena-cyan/40 text-xs rounded hover:border-arena-cyan">Load Commander Staples</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-    </main>
-
-
-    <!-- ================= FULL RESOLUTION CARD INSPECT MODAL ================= -->
-    <div id="inspect-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-arena-panel border border-arena-gold rounded-lg p-4 max-w-md w-full relative space-y-4 shadow-2xl">
-            <button onclick="closeInspectModal()" class="absolute top-2 right-2 text-arena-muted hover:text-white w-8 h-8 flex items-center justify-center">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <div class="text-center">
-                <h3 id="inspect-title" class="font-cinzel text-lg font-bold text-arena-gold">Card Title</h3>
-                <p id="inspect-type" class="text-xs text-arena-muted">Card Type</p>
-            </div>
-            <div class="flex justify-center">
-                <img id="inspect-img" src="" alt="Card Art" class="w-64 rounded-lg shadow-lg border border-arena-border">
-            </div>
-            <div class="flex justify-center space-x-3 pt-2">
-                <button id="inspect-add-btn" class="px-4 py-2 bg-arena-gold text-arena-bg font-bold text-xs rounded hover:bg-arena-goldLight">Add to Deck</button>
-                <button onclick="closeInspectModal()" class="px-4 py-2 bg-arena-border text-arena-text text-xs rounded hover:bg-arena-border/80">Close</button>
-            </div>
-        </div>
+  <!-- Top Arena Navigation Header -->
+  <header class="border-b border-arena-border bg-slate-900/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-slate-950 shadow-md font-arena font-extrabold text-xl">
+        M
+      </div>
+      <div>
+        <h1 class="font-arena font-extrabold text-lg tracking-wider gold-gradient-text leading-none">MTG ARENA HUB</h1>
+        <p class="text-[10px] text-slate-400 font-mono tracking-wider uppercase">Collection & Deck Hub</p>
+      </div>
     </div>
 
+    <!-- Main Navigation Tabs -->
+    <nav class="hidden md:flex items-center space-x-1 bg-slate-950/60 p-1 rounded-xl border border-arena-border/60">
+      <button id="nav-collection" onclick="switchTab('collection')" class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center space-x-2 bg-amber-500/10 text-amber-400 border border-amber-500/30">
+        <i class="fa-solid fa-boxes-stacked text-xs"></i>
+        <span>Collection</span>
+      </button>
+      <button id="nav-decks" onclick="switchTab('decks')" class="px-4 py-1.5 rounded-lg text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200 flex items-center space-x-2">
+        <i class="fa-solid fa-layer-group text-xs"></i>
+        <span>Decks</span>
+      </button>
+      <button id="nav-import" onclick="switchTab('import')" class="px-4 py-1.5 rounded-lg text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200 flex items-center space-x-2">
+        <i class="fa-solid fa-file-import text-xs"></i>
+        <span>Archidekt Import</span>
+      </button>
+    </nav>
 
-    <!-- ================= ARCHIDEKT / CSV IMPORT MODAL ================= -->
-    <div id="import-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-arena-panel border border-arena-border rounded-lg p-5 max-w-lg w-full space-y-4">
-            <div class="flex justify-between items-center border-b border-arena-border pb-2">
-                <h3 class="font-cinzel text-base font-bold text-arena-gold">Import Archidekt / CSV Decklist</h3>
-                <button onclick="closeImportModal()" class="text-arena-muted hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <p class="text-xs text-arena-muted">Paste your Archidekt text export or standard deck list (Format: "1x Sol Ring" or "Sol Ring").</p>
-            
-            <textarea id="import-textarea" rows="8" placeholder="1 Sol Ring&#10;1 Command Tower&#10;1 Arcane Signet&#10;1 Rhystic Study" 
-                      class="w-full bg-arena-bg border border-arena-border rounded p-3 text-xs text-arena-text focus:border-arena-cyan focus:outline-none font-mono"></textarea>
-            
-            <div class="flex justify-end space-x-2 pt-2">
-                <button onclick="closeImportModal()" class="px-4 py-1.5 bg-arena-border text-xs text-arena-muted hover:text-white rounded">Cancel</button>
-                <button onclick="processImportText()" class="px-4 py-1.5 bg-arena-gold text-arena-bg font-bold text-xs rounded hover:bg-arena-goldLight">Parse & Import Deck</button>
-            </div>
+    <!-- Auth & User Info Header -->
+    <div class="flex items-center space-x-3">
+      <div id="user-status-pill" class="flex items-center space-x-2 bg-slate-900 border border-arena-border px-3 py-1.5 rounded-full text-xs">
+        <div id="user-avatar" class="w-6 h-6 rounded-full bg-slate-800 text-amber-400 flex items-center justify-center font-bold font-arena border border-amber-500/30">
+          ?
         </div>
+        <span id="user-display-name" class="font-medium text-slate-300 max-w-[100px] sm:max-w-[140px] truncate">Guest User</span>
+        <button id="auth-action-btn" onclick="openAuthModal()" class="ml-1 text-xs text-amber-400 hover:text-amber-300 underline font-semibold">
+          Login
+        </button>
+      </div>
+
+      <!-- Mobile Menu Toggle Button -->
+      <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-slate-400 hover:text-slate-100 rounded-lg border border-arena-border">
+        <i class="fa-solid fa-bars text-lg"></i>
+      </button>
     </div>
+  </header>
 
+  <!-- Mobile Navigation Dropdown -->
+  <div id="mobile-menu" class="hidden md:hidden bg-slate-900 border-b border-arena-border px-4 py-2 space-y-2 z-20">
+    <button onclick="switchTab('collection'); toggleMobileMenu()" class="w-full text-left py-2 px-3 rounded-lg text-amber-400 bg-amber-500/10 font-semibold flex items-center space-x-2">
+      <i class="fa-solid fa-boxes-stacked"></i> <span>Collection</span>
+    </button>
+    <button onclick="switchTab('decks'); toggleMobileMenu()" class="w-full text-left py-2 px-3 rounded-lg text-slate-300 hover:bg-slate-800 font-semibold flex items-center space-x-2">
+      <i class="fa-solid fa-layer-group"></i> <span>Decks</span>
+    </button>
+    <button onclick="switchTab('import'); toggleMobileMenu()" class="w-full text-left py-2 px-3 rounded-lg text-slate-300 hover:bg-slate-800 font-semibold flex items-center space-x-2">
+      <i class="fa-solid fa-file-import"></i> <span>Archidekt Import</span>
+    </button>
+  </div>
 
-    <!-- JAVASCRIPT APP LOGIC -->
-    <script>
-        // --- GLOBAL APP STATE ---
-        let collection = [];       // Master card collection pool
-        let activeDeck = [];       // Deck items: { card, count, board: 'mainboard'|'commander'|'sideboard' }
-        let selectedColors = [];   // WUBRG filters
-        let selectedCmc = null;    // CMC filter
-        let selectedType = 'ALL';  // Type tab filter
-        let searchDebounceTimer = null;
+  <!-- Main Application Body -->
+  <main class="flex-1 overflow-hidden relative">
 
-        // Default Scryfall Preset Standard Staples
-        const SAMPLE_CARD_DATABASE = [
-            { id: '1', name: 'Sol Ring', mana_cost: '{1}', cmc: 1, type_line: 'Artifact', color_identity: [], image_uris: { normal: 'https://cards.scryfall.io/normal/front/1/b/1b3a453d-24f6-4d55-8025-a131b2685711.jpg' } },
-            { id: '2', name: 'Command Tower', mana_cost: '', cmc: 0, type_line: 'Land', color_identity: [], image_uris: { normal: 'https://cards.scryfall.io/normal/front/7/e/7e41156d-56c3-4234-a122-c430e7ef0f61.jpg' } },
-            { id: '3', name: 'Arcane Signet', mana_cost: '{2}', cmc: 2, type_line: 'Artifact', color_identity: [], image_uris: { normal: 'https://cards.scryfall.io/normal/front/0/e/0e86f91d-0453-4889-8d76-54a8e632e2c5.jpg' } },
-            { id: '4', name: 'Rhystic Study', mana_cost: '{2}{U}', cmc: 3, type_line: 'Enchantment', color_identity: ['U'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/d/6/d663a9a6-8742-4f0e-88c9-710e527d911b.jpg' } },
-            { id: '5', name: 'Counterspell', mana_cost: '{U}{U}', cmc: 2, type_line: 'Instant', color_identity: ['U'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/1/9/1920dae4-fb92-4f19-ae4b-eb3276b8edaa.jpg' } },
-            { id: '6', name: 'Lightning Bolt', mana_cost: '{R}', cmc: 1, type_line: 'Instant', color_identity: ['R'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/f/2/f29ba16f-c8fb-42fe-aabf-87089cb214a7.jpg' } },
-            { id: '7', name: 'Swords to Plowshares', mana_cost: '{W}', cmc: 1, type_line: 'Instant', color_identity: ['W'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/e/0/e0802772-8874-4286-9a5c-5e6f30a47318.jpg' } },
-            { id: '8', name: 'Cultivate', mana_cost: '{2}{G}', cmc: 3, type_line: 'Sorcery', color_identity: ['G'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/8/5/855d6884-25a8-48b8-b118-2e061801d0ad.jpg' } },
-            { id: '9', name: 'Demonic Tutor', mana_cost: '{1}{B}', cmc: 2, type_line: 'Sorcery', color_identity: ['B'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/0/b/0b146adc-829d-4357-9d48-3a8327c1328c.jpg' } },
-            { id: '10', name: 'Atatra, World Render', mana_cost: '{5}{R}{G}', cmc: 7, type_line: 'Legendary Creature — Dragon', color_identity: ['R', 'G'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/d/b/db57b01d-5a70-496e-a6a9-8399581895a9.jpg' } },
-            { id: '11', name: 'Smothering Tithe', mana_cost: '{3}{W}', cmc: 4, type_line: 'Enchantment', color_identity: ['W'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/8/6/861b5889-0183-4bee-afeb-a4b2aa720455.jpg' } },
-            { id: '12', name: 'Cyclonic Rift', mana_cost: '{1}{U}', cmc: 2, type_line: 'Instant', color_identity: ['U'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/c/5/c5211559-67d7-463d-82d2-8a9d186f8742.jpg' } }
-        ];
+    <!-- VIEW 1: COLLECTION VIEW -->
+    <section id="view-collection" class="h-full flex flex-col p-4 space-y-4 overflow-y-auto custom-scrollbar">
+      <!-- Collection Top Bar -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/80 p-4 rounded-xl border border-arena-border">
+        <div>
+          <h2 class="font-arena text-xl font-bold text-slate-100 flex items-center space-x-2">
+            <span>MY COLLECTION</span>
+            <span id="collection-count-badge" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-sans">0 Cards</span>
+          </h2>
+          <p class="text-xs text-slate-400">Search, manage, and inspect your MTG card inventory.</p>
+        </div>
 
-        // --- INIT APP ---
-        window.onload = function() {
-            collection = [...SAMPLE_CARD_DATABASE];
-            loadSavedDeck();
-            renderCollection();
-            renderDeckPanel();
-            fetchScryfallPreset('commander'); // Background load rich pool
-        };
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Search Input -->
+          <div class="relative flex-1 sm:w-64">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+            <input type="text" id="collection-search" placeholder="Filter collection..." oninput="renderCollection()" class="w-full bg-slate-950 border border-arena-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/50">
+          </div>
 
-        // --- TAB NAVIGATION ---
-        function switchTab(tab) {
-            ['builder', 'playtest', 'admin'].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.add('hidden');
-                const navBtn = document.getElementById(`nav-${t}`);
-                if (navBtn) {
-                    navBtn.classList.remove('border-arena-cyan', 'text-arena-cyan', 'bg-arena-border/30');
-                    navBtn.classList.add('border-transparent', 'text-arena-muted');
-                }
-            });
+          <!-- Quick Add Manual Card -->
+          <button onclick="openAddCardModal()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition-colors flex items-center space-x-1.5 shadow-md">
+            <i class="fa-solid fa-plus"></i>
+            <span>Add Card</span>
+          </button>
 
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`nav-${tab}`);
-            if (activeBtn) {
-                activeBtn.classList.remove('border-transparent', 'text-arena-muted');
-                activeBtn.classList.add('border-arena-cyan', 'text-arena-cyan', 'bg-arena-border/30');
-            }
+          <!-- CLEAR COLLECTION BUTTON -->
+          <button onclick="confirmClearCollection()" class="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800/60 text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1.5">
+            <i class="fa-solid fa-trash-can text-red-400"></i>
+            <span>Clear Collection</span>
+          </button>
+        </div>
+      </div>
 
-            if (tab === 'playtest') {
-                drawOpeningHand();
-            }
+      <!-- Collection Grid Container -->
+      <div id="collection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <!-- Collection Cards dynamically populated here -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="collection-empty" class="hidden flex-1 flex flex-col items-center justify-center p-12 text-center text-slate-500 space-y-3 border-2 border-dashed border-arena-border rounded-xl my-4">
+        <i class="fa-solid fa-box-open text-5xl text-slate-600"></i>
+        <p class="text-base font-semibold text-slate-400">Your collection is empty</p>
+        <p class="text-xs max-w-xs text-slate-500">Import your Archidekt CSV file or manually search and add cards to get started.</p>
+        <button onclick="switchTab('import')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold rounded-lg border border-amber-500/30 transition-all">
+          Import Archidekt CSV
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW 2: DECKS VIEW -->
+    <section id="view-decks" class="hidden h-full p-4 flex-col space-y-4 overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between bg-slate-900/80 p-4 rounded-xl border border-arena-border">
+        <div>
+          <h2 class="font-arena text-xl font-bold text-slate-100">DECK BUILDER</h2>
+          <p class="text-xs text-slate-400">Construct, analyze, and test your MTG decks.</p>
+        </div>
+        <button onclick="createNewDeck()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition-colors flex items-center space-x-1.5 shadow-md">
+          <i class="fa-solid fa-plus"></i>
+          <span>Create New Deck</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
+        <!-- Left Column: Decks List -->
+        <div class="bg-slate-900/60 p-4 rounded-xl border border-arena-border flex flex-col space-y-3">
+          <h3 class="font-arena text-sm font-bold text-amber-400 uppercase tracking-wider">Saved Decks</h3>
+          <div id="decks-list" class="space-y-2 overflow-y-auto custom-scrollbar flex-1 max-h-[600px]">
+            <!-- Decks dynamically added here -->
+          </div>
+        </div>
+
+        <!-- Right Column: Deck Details & Stats -->
+        <div id="deck-detail-panel" class="lg:col-span-2 bg-slate-900/60 p-4 rounded-xl border border-arena-border flex flex-col space-y-4">
+          <div id="deck-detail-content" class="flex-1 flex flex-col items-center justify-center text-slate-500 space-y-2 py-12">
+            <i class="fa-solid fa-layer-group text-4xl text-slate-700"></i>
+            <p class="text-sm">Select or create a deck to view details and simulator.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: ARCHIDEKT IMPORT VIEW -->
+    <section id="view-import" class="hidden h-full p-4 flex flex-col max-w-4xl mx-auto space-y-4 overflow-y-auto custom-scrollbar">
+      <div class="bg-slate-900/80 p-6 rounded-xl border border-arena-border space-y-4">
+        <div>
+          <h2 class="font-arena text-xl font-bold text-amber-400">IMPORT FROM ARCHIDEKT</h2>
+          <p class="text-xs text-slate-400">Upload your exported CSV collection file from Archidekt to sync your inventory.</p>
+        </div>
+
+        <!-- File Upload Area -->
+        <div class="border-2 border-dashed border-arena-border rounded-xl p-8 flex flex-col items-center justify-center space-y-3 bg-slate-950/50 hover:border-amber-500/50 transition-colors cursor-pointer" onclick="document.getElementById('csv-file-input').click()">
+          <i class="fa-solid fa-file-csv text-4xl text-amber-400"></i>
+          <p class="text-sm font-medium text-slate-300">Click to choose or drag & drop Archidekt CSV</p>
+          <p class="text-[11px] text-slate-500">Supports standard CSV exports with Name, Quantity, Set, Collector Number, Foil status.</p>
+          <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVUpload(event)">
+        </div>
+
+        <!-- CSV Preview Table -->
+        <div id="csv-preview-container" class="hidden space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-200">Import Preview (<span id="csv-count">0</span> cards parsed)</h3>
+            <button onclick="processCSVImport()" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg shadow-md transition-colors">
+              Confirm Import
+            </button>
+          </div>
+          <div class="max-h-60 overflow-y-auto border border-arena-border rounded-lg custom-scrollbar">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950 sticky top-0 border-b border-arena-border text-slate-400 font-mono">
+                <tr>
+                  <th class="p-2">Qty</th>
+                  <th class="p-2">Card Name</th>
+                  <th class="p-2">Set</th>
+                  <th class="p-2">Finish</th>
+                </tr>
+              </thead>
+              <tbody id="csv-preview-body" class="divide-y divide-slate-800">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- AUTHENTICATION MODAL -->
+  <div id="auth-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-arena-border rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl relative">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-200">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="text-center space-y-1">
+        <div class="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 mx-auto text-xl font-arena font-bold">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <h3 id="auth-modal-title" class="font-arena text-xl font-bold text-slate-100">ACCOUNT ACCESS</h3>
+        <p class="text-xs text-slate-400">Sign in or register to sync your collection across devices.</p>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+          <input type="email" id="auth-email" required placeholder="planeswalker@magic.com" class="w-full bg-slate-950 border border-arena-border rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+          <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-arena-border rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <button type="submit" id="auth-submit-btn" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm rounded-lg transition-colors shadow-md">
+          Sign In
+        </button>
+      </form>
+
+      <div class="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
+        <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-amber-400 hover:underline">
+          Need an account? Register here
+        </button>
+        <button onclick="signInGuest()" class="text-slate-400 hover:text-slate-200 underline">
+          Continue as Guest
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD CARD MODAL -->
+  <div id="add-card-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-arena-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl relative">
+      <button onclick="closeAddCardModal()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-200">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <h3 class="font-arena text-lg font-bold text-amber-400">ADD CARD TO COLLECTION</h3>
+
+      <div class="relative">
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Card Name (Scryfall Autocomplete)</label>
+        <input type="text" id="card-search-input" oninput="handleCardSearchAutocomplete(this.value)" placeholder="Type a card name (e.g. Black Lotus)" class="w-full bg-slate-950 border border-arena-border rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+        <div id="card-autocomplete-dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-arena-border rounded-lg max-h-48 overflow-y-auto z-10 custom-scrollbar shadow-xl"></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Quantity</label>
+          <input type="number" id="card-add-qty" min="1" value="1" class="w-full bg-slate-950 border border-arena-border rounded-lg px-3 py-2 text-sm text-slate-200">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Finish</label>
+          <select id="card-add-foil" class="w-full bg-slate-950 border border-arena-border rounded-lg px-3 py-2 text-sm text-slate-200">
+            <option value="normal">Normal</option>
+            <option value="foil">Foil</option>
+          </select>
+        </div>
+      </div>
+
+      <button onclick="confirmAddCard()" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm rounded-lg transition-colors">
+        Add to Collection
+      </button>
+    </div>
+  </div>
+
+  <!-- CONFIRM CLEAR COLLECTION MODAL -->
+  <div id="clear-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-red-800/80 rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl text-center">
+      <div class="w-12 h-12 bg-red-950 text-red-400 rounded-full flex items-center justify-center mx-auto text-xl border border-red-800">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 class="font-arena text-lg font-bold text-slate-100">CLEAR ENTIRE COLLECTION?</h3>
+      <p class="text-xs text-slate-400">Are you sure you want to clear your entire collection? This action cannot be undone.</p>
+      
+      <div class="flex space-x-3 pt-2">
+        <button onclick="closeClearModal()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-lg border border-slate-700">
+          Cancel
+        </button>
+        <button onclick="executeClearCollection()" class="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-lg shadow-md">
+          Yes, Clear All
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIREBASE MODULES -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithCustomToken, 
+      signInAnonymously, 
+      signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword, 
+      signOut, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      doc, 
+      getDoc, 
+      setDoc, 
+      onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Global Firebase setup variables
+    const firebaseConfig = typeof __firebase_config !== 'undefined' 
+      ? JSON.parse(__firebase_config) 
+      : { apiKey: "demo", authDomain: "demo.firebaseapp.com", projectId: "demo" };
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'mtg-arena-hub';
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.appId = appId;
+
+    // Authentication Initialization
+    async function initAuth() {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
         }
+      } catch (err) {
+        console.warn("Firebase Auth fallback to offline state:", err);
+      }
+    }
 
-        // --- COLLECTION SEARCH & RENDER ---
-        function renderCollection() {
-            const grid = document.getElementById('collection-grid');
-            const empty = document.getElementById('collection-empty');
-            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+    onAuthStateChanged(auth, (user) => {
+      window.currentUser = user;
+      updateAuthUI(user);
+      if (user) {
+        syncUserData(user.uid);
+      }
+    });
 
-            const filtered = collection.filter(card => {
-                // Text Search
-                if (searchVal && !card.name.toLowerCase().includes(searchVal) && !(card.type_line && card.type_line.toLowerCase().includes(searchVal))) {
-                    return false;
-                }
-                // Color Identity Filter
-                if (selectedColors.length > 0) {
-                    if (selectedColors.includes('C') && card.color_identity.length !== 0) return false;
-                    if (selectedColors.includes('M') && card.color_identity.length < 2) return false;
-                    const singleColors = selectedColors.filter(c => c !== 'C' && c !== 'M');
-                    if (singleColors.length > 0 && !singleColors.some(c => card.color_identity.includes(c))) return false;
-                }
-                // CMC Filter
-                if (selectedCmc !== null) {
-                    if (selectedCmc === 7 && card.cmc < 7) return false;
-                    if (selectedCmc < 7 && card.cmc !== selectedCmc) return false;
-                }
-                // Type Filter
-                if (selectedType !== 'ALL') {
-                    if (!card.type_line || !card.type_line.includes(selectedType)) return false;
-                }
-                return true;
-            });
+    initAuth();
 
-            document.getElementById('collection-count-label').innerText = `Showing ${filtered.length} cards`;
-
-            if (filtered.length === 0) {
-                grid.innerHTML = '';
-                empty.classList.remove('hidden');
-                return;
-            }
-
-            empty.classList.add('hidden');
-            grid.innerHTML = filtered.map(card => {
-                const img = card.image_uris?.normal || card.image_uris?.small || 'https://placehold.co/250x350/10141d/d4af37?text=MTG+Card';
-                return `
-                    <div class="card-tile-container relative cursor-pointer group" onclick="addCardToDeck('${card.id}')" oncontextmenu="inspectCard(event, '${card.id}')">
-                        <img src="${img}" alt="${card.name}" class="card-tile-img w-full shadow-md rounded border border-arena-border group-hover:border-arena-cyan arena-cyan-glow">
-                        <div class="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition bg-arena-panel/90 px-1.5 py-0.5 rounded text-[10px] text-arena-cyan border border-arena-cyan/40">
-                            + Add Copy
-                        </div>
-                    </div>
-                `;
-            }).join('');
+    // Data Syncing Functionality
+    function syncUserData(uid) {
+      // Sync Collection
+      const colRef = doc(db, 'artifacts', appId, 'users', uid, 'data', 'collection');
+      onSnapshot(colRef, (docSnap) => {
+        if (docSnap.exists()) {
+          window.userCollection = docSnap.data().items || [];
+          saveLocalCollection(window.userCollection);
+          renderCollection();
         }
+      }, (err) => console.log("Firestore sync warning:", err));
 
-        // --- DECK PANEL LOGIC & STACKED STRIPS ---
-        function addCardToDeck(cardId, board = 'mainboard') {
-            const card = collection.find(c => c.id === cardId);
-            if (!card) return;
-
-            // Handle Legendary Commander Assignment automatically
-            if (board === 'mainboard' && card.type_line && card.type_line.includes('Legendary Creature') && !activeDeck.some(d => d.board === 'commander')) {
-                board = 'commander';
-            }
-
-            const existing = activeDeck.find(d => d.card.id === cardId && d.board === board);
-            if (existing) {
-                existing.count += 1;
-            } else {
-                activeDeck.push({ card, count: 1, board });
-            }
-
-            saveDeckToStorage();
-            renderDeckPanel();
+      // Sync Decks
+      const deckRef = doc(db, 'artifacts', appId, 'users', uid, 'data', 'decks');
+      onSnapshot(deckRef, (docSnap) => {
+        if (docSnap.exists()) {
+          window.userDecks = docSnap.data().items || [];
+          saveLocalDecks(window.userDecks);
+          renderDecksList();
         }
+      }, (err) => console.log("Firestore sync warning:", err));
+    }
 
-        function removeCardFromDeck(cardId, board) {
-            const index = activeDeck.findIndex(d => d.card.id === cardId && d.board === board);
-            if (index !== -1) {
-                if (activeDeck[index].count > 1) {
-                    activeDeck[index].count -= 1;
-                } else {
-                    activeDeck.splice(index, 1);
-                }
-            }
-            saveDeckToStorage();
-            renderDeckPanel();
+    // Save functions exposed to global scope
+    window.saveCloudCollection = async function(collection) {
+      if (!window.currentUser) return;
+      try {
+        const colRef = doc(db, 'artifacts', appId, 'users', window.currentUser.uid, 'data', 'collection');
+        await setDoc(colRef, { items: collection });
+      } catch (e) {
+        console.error("Cloud save failed:", e);
+      }
+    };
+
+    window.saveCloudDecks = async function(decks) {
+      if (!window.currentUser) return;
+      try {
+        const deckRef = doc(db, 'artifacts', appId, 'users', window.currentUser.uid, 'data', 'decks');
+        await setDoc(deckRef, { items: decks });
+      } catch (e) {
+        console.error("Cloud save failed:", e);
+      }
+    };
+  </script>
+
+  <!-- APPLICATION LOGIC SCRIPT -->
+  <script>
+    // State Management
+    let collection = JSON.parse(localStorage.getItem('mtg_collection')) || [];
+    let decks = JSON.parse(localStorage.getItem('mtg_decks')) || [];
+    let parsedCSVData = [];
+    let isRegisterMode = false;
+    let selectedDeckId = null;
+
+    window.userCollection = collection;
+    window.userDecks = decks;
+
+    // Helper functions for LocalStorage Fallback
+    function saveLocalCollection(items) {
+      localStorage.setItem('mtg_collection', JSON.stringify(items));
+    }
+    function saveLocalDecks(items) {
+      localStorage.setItem('mtg_decks', JSON.stringify(items));
+    }
+
+    function saveState() {
+      saveLocalCollection(window.userCollection);
+      saveLocalDecks(window.userDecks);
+
+      if (window.saveCloudCollection) window.saveCloudCollection(window.userCollection);
+      if (window.saveCloudDecks) window.saveCloudDecks(window.userDecks);
+    }
+
+    // Tab Navigation Switcher
+    function switchTab(tab) {
+      document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+
+      ['collection', 'decks', 'import'].forEach(t => {
+        const btn = document.getElementById(`nav-${t}`);
+        if (btn) {
+          if (t === tab) {
+            btn.className = "px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center space-x-2 bg-amber-500/10 text-amber-400 border border-amber-500/30";
+          } else {
+            btn.className = "px-4 py-1.5 rounded-lg text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200 flex items-center space-x-2";
+          }
         }
+      });
 
-        function renderDeckPanel() {
-            const listCommander = document.getElementById('list-commander');
-            const listMainboard = document.getElementById('list-mainboard');
-            const listSideboard = document.getElementById('list-sideboard');
+      if (tab === 'collection') renderCollection();
+      if (tab === 'decks') renderDecksList();
+    }
 
-            listCommander.innerHTML = '';
-            listMainboard.innerHTML = '';
-            listSideboard.innerHTML = '';
+    function toggleMobileMenu() {
+      document.getElementById('mobile-menu').classList.toggle('hidden');
+    }
 
-            let commanderCount = 0, mainCount = 0, sideCount = 0;
+    // --- COLLECTION RENDERING & CLEAR FEATURE ---
+    function renderCollection() {
+      const grid = document.getElementById('collection-grid');
+      const emptyState = document.getElementById('collection-empty');
+      const badge = document.getElementById('collection-count-badge');
+      const searchVal = (document.getElementById('collection-search')?.value || '').toLowerCase();
 
-            activeDeck.forEach(item => {
-                const total = item.count;
-                const html = `
-                    <div class="deck-card-strip p-1.5 rounded text-xs flex items-center justify-between cursor-pointer select-none"
-                         onclick="removeCardFromDeck('${item.card.id}', '${item.board}')"
-                         oncontextmenu="inspectCard(event, '${item.card.id}')">
-                        <div class="flex items-center space-x-2 truncate">
-                            <span class="w-5 h-5 rounded-full bg-arena-border flex items-center justify-center text-[10px] font-bold text-arena-gold border border-arena-gold/30">
-                                ${item.card.cmc || 0}
-                            </span>
-                            <span class="font-medium text-arena-text truncate">${item.card.name}</span>
-                        </div>
-                        <div class="flex items-center space-x-1.5">
-                            <span class="px-1.5 py-0.5 rounded bg-arena-bg border border-arena-border text-[10px] font-bold text-arena-cyan">
-                                x${item.count}
-                            </span>
-                        </div>
-                    </div>
-                `;
+      const items = window.userCollection.filter(item => item.name.toLowerCase().includes(searchVal));
 
-                if (item.board === 'commander') {
-                    listCommander.innerHTML += html;
-                    commanderCount += total;
-                } else if (item.board === 'sideboard') {
-                    listSideboard.innerHTML += html;
-                    sideCount += total;
-                } else {
-                    listMainboard.innerHTML += html;
-                    mainCount += total;
-                }
-            });
+      badge.innerText = `${window.userCollection.reduce((acc, c) => acc + (c.qty || 1), 0)} Cards`;
 
-            document.getElementById('count-commander').innerText = commanderCount;
-            document.getElementById('count-mainboard').innerText = mainCount;
-            document.getElementById('count-sideboard').innerText = sideCount;
+      if (items.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
 
-            const totalDeck = commanderCount + mainCount;
-            document.getElementById('deck-total-count').innerText = totalDeck;
+      emptyState.classList.add('hidden');
+      grid.innerHTML = items.map((card, idx) => `
+        <div class="bg-slate-900 border border-arena-border rounded-xl p-3 flex flex-col justify-between hover:border-amber-500/50 transition-all group">
+          <div class="relative aspect-[2.5/3.5] rounded-lg overflow-hidden bg-slate-950 mb-2 border border-slate-800">
+            <img src="${card.imageUrl || 'https://placehold.co/250x350/0f141c/c8a052?text=' + encodeURIComponent(card.name)}" alt="${card.name}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/250x350/0f141c/c8a052?text=MTG+Card'">
+            ${card.foil ? `<span class="absolute top-1 right-1 bg-amber-500 text-slate-950 text-[9px] font-bold px-1.5 py-0.5 rounded shadow">FOIL</span>` : ''}
+            <span class="absolute bottom-1 left-1 bg-slate-950/80 backdrop-blur text-slate-200 text-[10px] font-mono px-1.5 py-0.5 rounded border border-slate-700">x${card.qty || 1}</span>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-slate-100 truncate">${card.name}</h4>
+            <p class="text-[10px] text-slate-400 font-mono">${card.set || 'Core'} ${card.collectorNumber ? '#' + card.collectorNumber : ''}</p>
+          </div>
+          <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/80">
+            <div class="flex items-center space-x-1">
+              <button onclick="updateQty(${idx}, -1)" class="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs flex items-center justify-center">-</button>
+              <button onclick="updateQty(${idx}, 1)" class="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs flex items-center justify-center">+</button>
+            </div>
+            <button onclick="removeCard(${idx})" class="text-xs text-red-400 hover:text-red-300">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
 
-            renderManaCurveAndColors();
-        }
+    function updateQty(idx, change) {
+      if (window.userCollection[idx]) {
+        window.userCollection[idx].qty = Math.max(1, (window.userCollection[idx].qty || 1) + change);
+        saveState();
+        renderCollection();
+      }
+    }
 
-        // --- DECK STATS & MANA CURVE HISTOGRAM ---
-        function renderManaCurveAndColors() {
-            const cmcCounts = [0, 0, 0, 0, 0, 0, 0]; // 1 to 7+
-            const colorCounts = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+    function removeCard(idx) {
+      window.userCollection.splice(idx, 1);
+      saveState();
+      renderCollection();
+    }
 
-            activeDeck.forEach(item => {
-                if (item.board === 'sideboard') return;
-                const cmc = Math.min(Math.max(item.card.cmc || 0, 1), 7) - 1;
-                cmcCounts[cmc] += item.count;
+    // Clear Collection Modal handlers
+    function confirmClearCollection() {
+      document.getElementById('clear-modal').classList.remove('hidden');
+    }
+    function closeClearModal() {
+      document.getElementById('clear-modal').classList.add('hidden');
+    }
+    function executeClearCollection() {
+      window.userCollection = [];
+      saveState();
+      closeClearModal();
+      renderCollection();
+    }
 
-                (item.card.color_identity || []).forEach(col => {
-                    if (colorCounts[col] !== undefined) colorCounts[col] += item.count;
-                });
-            });
+    // --- MANUAL CARD ADD & SCRYFALL AUTOCOMPLETE ---
+    function openAddCardModal() {
+      document.getElementById('add-card-modal').classList.remove('hidden');
+    }
+    function closeAddCardModal() {
+      document.getElementById('add-card-modal').classList.add('hidden');
+    }
 
-            const maxCmc = Math.max(...cmcCounts, 1);
-            const curveBars = document.getElementById('mana-curve-bars');
-            curveBars.innerHTML = cmcCounts.map(count => {
-                const heightPct = Math.round((count / maxCmc) * 100);
-                return `
-                    <div class="w-full flex flex-col items-center justify-end h-full group">
-                        <span class="text-[9px] text-arena-cyan opacity-0 group-hover:opacity-100">${count}</span>
-                        <div style="height: ${Math.max(heightPct, 8)}%" class="w-3/4 bg-gradient-to-t from-arena-goldDark to-arena-gold rounded-t transition-all"></div>
-                    </div>
-                `;
-            }).join('');
+    let searchTimeout;
+    async function handleCardSearchAutocomplete(query) {
+      clearTimeout(searchTimeout);
+      const dropdown = document.getElementById('card-autocomplete-dropdown');
+      if (!query || query.length < 2) {
+        dropdown.classList.add('hidden');
+        return;
+      }
 
-            // Color Distribution Bar
-            const totalPips = Object.values(colorCounts).reduce((a,b) => a+b, 0) || 1;
-            const colBar = document.getElementById('color-distribution-bar');
-            colBar.innerHTML = `
-                <div style="width: ${(colorCounts.W/totalPips)*100}%" class="bg-mtg-white"></div>
-                <div style="width: ${(colorCounts.U/totalPips)*100}%" class="bg-mtg-blue"></div>
-                <div style="width: ${(colorCounts.B/totalPips)*100}%" class="bg-mtg-black"></div>
-                <div style="width: ${(colorCounts.R/totalPips)*100}%" class="bg-mtg-red"></div>
-                <div style="width: ${(colorCounts.G/totalPips)*100}%" class="bg-mtg-green"></div>
-            `;
-            document.getElementById('color-pip-ratios').innerText = `W:${colorCounts.W} U:${colorCounts.U} B:${colorCounts.B} R:${colorCounts.R} G:${colorCounts.G}`;
-        }
-
-        // --- SAMPLE HAND SIMULATOR ---
-        let currentHand = [];
-        let remainingDeck = [];
-
-        function drawOpeningHand() {
-            let deckArray = [];
-            activeDeck.forEach(item => {
-                for (let i = 0; i < item.count; i++) deckArray.push(item.card);
-            });
-
-            // Shuffle
-            deckArray.sort(() => Math.random() - 0.5);
-
-            currentHand = deckArray.slice(0, 7);
-            remainingDeck = deckArray.slice(7);
-
-            renderSampleHand();
-        }
-
-        function drawOneCard() {
-            if (remainingDeck.length === 0) return;
-            currentHand.push(remainingDeck.shift());
-            renderSampleHand();
-        }
-
-        function renderSampleHand() {
-            const grid = document.getElementById('playtest-hand-grid');
-            document.getElementById('playtest-hand-count').innerText = currentHand.length;
-            document.getElementById('playtest-deck-rem').innerText = `Library remaining: ${remainingDeck.length}`;
-
-            grid.innerHTML = currentHand.map(card => `
-                <img src="${card.image_uris?.normal || 'https://placehold.co/250x350/10141d/d4af37?text=MTG+Card'}" 
-                     class="w-full rounded shadow border border-arena-border hover:border-arena-gold transition">
+      searchTimeout = setTimeout(async () => {
+        try {
+          const res = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`);
+          const data = await res.json();
+          if (data.data && data.data.length > 0) {
+            dropdown.innerHTML = data.data.map(name => `
+              <div onclick="selectAutocompleteCard('${name.replace(/'/g, "\\'")}')" class="px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 cursor-pointer border-b border-slate-800/50 last:border-0">
+                ${name}
+              </div>
             `).join('');
-
-            // Analytics
-            const lands = currentHand.filter(c => c.type_line && c.type_line.includes('Land')).length;
-            const totalCmc = currentHand.reduce((acc, c) => acc + (c.cmc || 0), 0);
-            const avgCmc = currentHand.length ? (totalCmc / currentHand.length).toFixed(1) : '0.0';
-
-            document.getElementById('odds-lands').innerText = `${lands} Lands`;
-            document.getElementById('odds-avg-cmc').innerText = avgCmc;
-            document.getElementById('odds-status').innerText = lands >= 2 && lands <= 4 ? 'Optimal Mana Curve' : 'Potential Mulligan Risk';
+            dropdown.classList.remove('hidden');
+          } else {
+            dropdown.classList.add('hidden');
+          }
+        } catch (e) {
+          dropdown.classList.add('hidden');
         }
+      }, 250);
+    }
 
-        // --- SCRYFALL API FETCH ENGINE ---
-        async function fetchScryfallPreset(format = 'commander') {
-            const spinner = document.getElementById('collection-spinner');
-            spinner.classList.remove('hidden');
+    function selectAutocompleteCard(name) {
+      document.getElementById('card-search-input').value = name;
+      document.getElementById('card-autocomplete-dropdown').classList.add('hidden');
+    }
 
-            try {
-                const res = await fetch(`https://api.scryfall.com/cards/search?q=f:${format}+is:commander_staple&unique=cards`);
-                const data = await res.json();
-                if (data && data.data) {
-                    collection = data.data.map(c => ({
-                        id: c.id,
-                        name: c.name,
-                        mana_cost: c.mana_cost || '',
-                        cmc: c.cmc || 0,
-                        type_line: c.type_line || '',
-                        color_identity: c.color_identity || [],
-                        image_uris: c.image_uris || (c.card_faces ? c.card_faces[0].image_uris : null)
-                    }));
-                    renderCollection();
-                }
-            } catch (err) {
-                console.error('Scryfall API error, using fallback:', err);
-            } finally {
-                spinner.classList.add('hidden');
-            }
+    async function confirmAddCard() {
+      const name = document.getElementById('card-search-input').value.trim();
+      const qty = parseInt(document.getElementById('card-add-qty').value) || 1;
+      const foil = document.getElementById('card-add-foil').value === 'foil';
+
+      if (!name) return;
+
+      // Scryfall lookup for image
+      let imageUrl = '';
+      let set = '';
+      try {
+        const res = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
+        const cardData = await res.json();
+        if (cardData.image_uris) imageUrl = cardData.image_uris.normal;
+        if (cardData.set) set = cardData.set.toUpperCase();
+      } catch (e) { console.log(e); }
+
+      window.userCollection.push({ name, qty, foil, imageUrl, set });
+      saveState();
+      closeAddCardModal();
+      document.getElementById('card-search-input').value = '';
+      renderCollection();
+    }
+
+    // --- ARCHIDEKT CSV IMPORT ---
+    function handleCSVUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        parseCSVText(text);
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCSVText(csvText) {
+      const lines = csvText.split('\n').filter(line => line.trim() !== '');
+      if (lines.length < 2) return;
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      parsedCSVData = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim().replace(/"/g, ''));
+        if (cols.length < headers.length) continue;
+
+        const nameIdx = headers.findIndex(h => h.includes('name'));
+        const qtyIdx = headers.findIndex(h => h.includes('quantity') || h.includes('qty'));
+        const setIdx = headers.findIndex(h => h.includes('edition') || h.includes('set'));
+
+        if (nameIdx !== -1) {
+          parsedCSVData.push({
+            name: cols[nameIdx],
+            qty: qtyIdx !== -1 ? parseInt(cols[qtyIdx]) || 1 : 1,
+            set: setIdx !== -1 ? cols[setIdx].toUpperCase() : 'SET',
+            foil: false
+          });
         }
+      }
 
-        // --- INSPECT & MODAL CONTROLS ---
-        function inspectCard(e, cardId) {
-            e.preventDefault();
-            const card = collection.find(c => c.id === cardId) || activeDeck.find(d => d.card.id === cardId)?.card;
-            if (!card) return;
+      document.getElementById('csv-count').innerText = parsedCSVData.length;
+      document.getElementById('csv-preview-body').innerHTML = parsedCSVData.slice(0, 10).map(c => `
+        <tr>
+          <td class="p-2">${c.qty}</td>
+          <td class="p-2 font-semibold text-slate-100">${c.name}</td>
+          <td class="p-2">${c.set}</td>
+          <td class="p-2">${c.foil ? 'Foil' : 'Normal'}</td>
+        </tr>
+      `).join('');
+      document.getElementById('csv-preview-container').classList.remove('hidden');
+    }
 
-            document.getElementById('inspect-title').innerText = card.name;
-            document.getElementById('inspect-type').innerText = card.type_line;
-            document.getElementById('inspect-img').src = card.image_uris?.normal || '';
-            
-            const addBtn = document.getElementById('inspect-add-btn');
-            addBtn.onclick = () => { addCardToDeck(card.id); closeInspectModal(); };
+    function processCSVImport() {
+      if (parsedCSVData.length === 0) return;
+      window.userCollection = [...window.userCollection, ...parsedCSVData];
+      saveState();
+      parsedCSVData = [];
+      document.getElementById('csv-preview-container').classList.add('hidden');
+      switchTab('collection');
+    }
 
-            document.getElementById('inspect-modal').classList.remove('hidden');
+    // --- DECKS BUILDER LOGIC ---
+    function createNewDeck() {
+      const name = prompt("Enter Deck Name:", "New Deck");
+      if (!name) return;
+
+      const newDeck = {
+        id: 'deck_' + Date.now(),
+        name,
+        cards: []
+      };
+      window.userDecks.push(newDeck);
+      saveState();
+      renderDecksList();
+    }
+
+    function renderDecksList() {
+      const list = document.getElementById('decks-list');
+      if (window.userDecks.length === 0) {
+        list.innerHTML = `<p class="text-xs text-slate-500 py-4 text-center">No decks created yet.</p>`;
+        return;
+      }
+
+      list.innerHTML = window.userDecks.map(deck => `
+        <div onclick="selectDeck('${deck.id}')" class="p-3 bg-slate-950 border ${selectedDeckId === deck.id ? 'border-amber-500 bg-amber-500/5' : 'border-arena-border'} rounded-lg cursor-pointer hover:border-amber-500/50 transition-all flex items-center justify-between">
+          <div>
+            <h4 class="text-xs font-bold text-slate-200">${deck.name}</h4>
+            <p class="text-[10px] text-slate-500">${deck.cards.reduce((a,c) => a + c.qty, 0)} cards</p>
+          </div>
+          <i class="fa-solid fa-chevron-right text-xs text-slate-600"></i>
+        </div>
+      `).join('');
+    }
+
+    function selectDeck(deckId) {
+      selectedDeckId = deckId;
+      renderDecksList();
+      const deck = window.userDecks.find(d => d.id === deckId);
+      if (!deck) return;
+
+      const detail = document.getElementById('deck-detail-content');
+      detail.innerHTML = `
+        <div class="w-full space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="font-arena text-lg font-bold text-amber-400">${deck.name}</h3>
+            <button onclick="deleteDeck('${deck.id}')" class="text-xs text-red-400 hover:underline">Delete Deck</button>
+          </div>
+
+          <!-- Sample Hand Tester -->
+          <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-300">Sample Hand Tester (7 Cards)</span>
+              <button onclick="drawSampleHand('${deck.id}')" class="px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-semibold rounded hover:bg-amber-500/30">Draw Opening Hand</button>
+            </div>
+            <div id="sample-hand-container" class="flex flex-wrap gap-2 min-h-[60px] items-center justify-center p-2 bg-slate-900/50 rounded border border-slate-800/80">
+              <span class="text-xs text-slate-600">Click button above to simulate opening hand.</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function deleteDeck(deckId) {
+      window.userDecks = window.userDecks.filter(d => d.id !== deckId);
+      saveState();
+      selectedDeckId = null;
+      renderDecksList();
+      document.getElementById('deck-detail-content').innerHTML = `
+        <div class="flex flex-col items-center justify-center text-slate-500 space-y-2 py-12">
+          <i class="fa-solid fa-layer-group text-4xl text-slate-700"></i>
+          <p class="text-sm">Select or create a deck to view details.</p>
+        </div>
+      `;
+    }
+
+    function drawSampleHand(deckId) {
+      const deck = window.userDecks.find(d => d.id === deckId);
+      const container = document.getElementById('sample-hand-container');
+      if (!deck || deck.cards.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-500">Add cards to deck to test hands.</span>`;
+        return;
+      }
+
+      // Expand deck list
+      let pool = [];
+      deck.cards.forEach(c => {
+        for(let i=0; i<c.qty; i++) pool.push(c.name);
+      });
+
+      // Shuffle
+      pool.sort(() => Math.random() - 0.5);
+      const hand = pool.slice(0, 7);
+
+      container.innerHTML = hand.map(card => `
+        <div class="px-2.5 py-1.5 bg-slate-800 text-slate-200 border border-slate-700 rounded text-xs font-semibold shadow">
+          ${card}
+        </div>
+      `).join('');
+    }
+
+    // --- AUTHENTICATION MODAL LOGIC ---
+    function openAuthModal() {
+      document.getElementById('auth-modal').classList.remove('hidden');
+    }
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+    }
+
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('auth-modal-title').innerText = isRegisterMode ? 'CREATE ACCOUNT' : 'ACCOUNT ACCESS';
+      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? 'Register' : 'Sign In';
+      document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? 'Already have an account? Sign In' : 'Need an account? Register here';
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value;
+      const pass = document.getElementById('auth-password').value;
+
+      try {
+        if (isRegisterMode) {
+          await createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
+        } else {
+          await signInWithEmailAndPassword(window.firebaseAuth, email, pass);
         }
+        closeAuthModal();
+      } catch (err) {
+        alert("Auth Error: " + err.message);
+      }
+    }
 
-        function closeInspectModal() {
-            document.getElementById('inspect-modal').classList.add('hidden');
-        }
+    async function signInGuest() {
+      try {
+        await signInAnonymously(window.firebaseAuth);
+        closeAuthModal();
+      } catch (err) {
+        console.log(err);
+      }
+    }
 
-        // --- FILTERS & SEARCH HELPERS ---
-        function toggleColorFilter(color) {
-            const idx = selectedColors.indexOf(color);
-            if (idx > -1) selectedColors.splice(idx, 1);
-            else selectedColors.push(color);
+    function updateAuthUI(user) {
+      const nameEl = document.getElementById('user-display-name');
+      const avatarEl = document.getElementById('user-avatar');
+      const btnEl = document.getElementById('auth-action-btn');
 
-            ['W','U','B','R','G','C','M'].forEach(c => {
-                const btn = document.getElementById(`btn-color-${c}`);
-                if (selectedColors.includes(c)) btn.classList.remove('opacity-40');
-                else btn.classList.add('opacity-40');
-            });
-            renderCollection();
-        }
+      if (user && !user.isAnonymous) {
+        nameEl.innerText = user.email ? user.email.split('@')[0] : 'Planeswalker';
+        avatarEl.innerText = (user.email ? user.email[0] : 'P').toUpperCase();
+        btnEl.innerText = 'Logout';
+        btnEl.onclick = () => signOut(window.firebaseAuth);
+      } else {
+        nameEl.innerText = 'Guest User';
+        avatarEl.innerText = '?';
+        btnEl.innerText = 'Login';
+        btnEl.onclick = openAuthModal;
+      }
+    }
 
-        function toggleCmcFilter(cmc) {
-            if (selectedCmc === cmc) selectedCmc = null;
-            else selectedCmc = cmc;
-
-            for (let i = 0; i <= 7; i++) {
-                const btn = document.getElementById(`cmc-${i}`);
-                if (selectedCmc === i) btn.classList.add('bg-arena-gold', 'text-arena-bg');
-                else btn.classList.remove('bg-arena-gold', 'text-arena-bg');
-            }
-            renderCollection();
-        }
-
-        function setTypeFilter(type) {
-            selectedType = type;
-            ['ALL','Creature','Instant','Sorcery','Planeswalker','Enchantment','Artifact','Land'].forEach(t => {
-                const btn = document.getElementById(`type-${t}`);
-                if (t === type) btn.className = 'px-2 py-0.5 rounded text-arena-gold border border-arena-gold/40 bg-arena-gold/10 font-medium';
-                else btn.className = 'px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40';
-            });
-            renderCollection();
-        }
-
-        function debounceSearch() {
-            clearTimeout(searchDebounceTimer);
-            document.getElementById('search-clear').classList.toggle('hidden', !document.getElementById('search-input').value);
-            searchDebounceTimer = setTimeout(renderCollection, 200);
-        }
-
-        function clearSearch() {
-            document.getElementById('search-input').value = '';
-            document.getElementById('search-clear').classList.add('hidden');
-            renderCollection();
-        }
-
-        // --- IMPORT / EXPORT DECK ---
-        function openImportModal() { document.getElementById('import-modal').classList.remove('hidden'); }
-        function closeImportModal() { document.getElementById('import-modal').classList.add('hidden'); }
-
-        function processImportText() {
-            const text = document.getElementById('import-textarea').value;
-            const lines = text.split('\n');
-            lines.forEach(line => {
-                const match = line.match(/^(\d+)?x?\s*(.+)$/i);
-                if (match) {
-                    const count = parseInt(match[1]) || 1;
-                    const name = match[2].trim();
-                    const card = collection.find(c => c.name.toLowerCase() === name.toLowerCase());
-                    if (card) {
-                        const existing = activeDeck.find(d => d.card.id === card.id);
-                        if (existing) existing.count += count;
-                        else activeDeck.push({ card, count, board: 'mainboard' });
-                    }
-                }
-            });
-            saveDeckToStorage();
-            renderDeckPanel();
-            closeImportModal();
-        }
-
-        function exportDeckList() {
-            const text = activeDeck.map(d => `${d.count} ${d.card.name}`).join('\n');
-            navigator.clipboard.writeText(text);
-            alert('Decklist copied to clipboard!');
-        }
-
-        function confirmClearDeck() {
-            if (confirm('Are you sure you want to clear your current deck?')) {
-                activeDeck = [];
-                saveDeckToStorage();
-                renderDeckPanel();
-            }
-        }
-
-        // --- PERSISTENCE ---
-        function saveDeckToStorage() {
-            localStorage.setItem('arena_active_deck', JSON.stringify(activeDeck));
-        }
-
-        function loadSavedDeck() {
-            const saved = localStorage.getItem('arena_active_deck');
-            if (saved) {
-                try { activeDeck = JSON.parse(saved); } catch(e){}
-            }
-        }
-
-        function clearLocalStorage() {
-            localStorage.clear();
-            activeDeck = [];
-            renderDeckPanel();
-            alert('Local storage reset successfully.');
-        }
-    </script>
+    // Initial render
+    renderCollection();
+  </script>
 </body>
 </html>
