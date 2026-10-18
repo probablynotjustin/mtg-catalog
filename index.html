@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Arena Deckbuilder & Collection Manager</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Cinzel for MTG Fantasy Aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        arena: {
+                            bg: '#0a0d12',
+                            panel: '#121721',
+                            cardBg: '#1a2230',
+                            border: '#2a364f',
+                            gold: '#d4af37',
+                            goldLight: '#f3e5ab',
+                            goldDark: '#8a6d1c',
+                            cyan: '#00e5ff',
+                            cyanGlow: 'rgba(0, 229, 255, 0.25)',
+                            text: '#e2e8f0',
+                            muted: '#8b9bb4'
+                        },
+                        mtg: {
+                            white: '#fffbd5',
+                            blue: '#aae0fa',
+                            black: '#cbc2bf',
+                            red: '#f9aa8f',
+                            green: '#9bd3ae',
+                            colorless: '#ccc2c0',
+                            gold: '#e3d386'
+                        }
+                    },
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #0a0d12;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Arena Style Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f141d;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a374e;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d4af37;
+        }
+
+        /* Gold Gradient Borders & Glows */
+        .arena-gold-border {
+            border: 1px solid #d4af37;
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.25);
+        }
+        .arena-cyan-glow:hover {
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+            border-color: #00e5ff;
+        }
+        .arena-panel-inset {
+            background: radial-gradient(circle at top, #18202d 0%, #0d121a 100%);
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.8);
+        }
+
+        /* Stacked Deck Strip Aesthetic */
+        .deck-card-strip {
+            position: relative;
+            background: linear-gradient(90deg, rgba(20,27,38,0.95) 0%, rgba(28,38,54,0.85) 60%, rgba(15,20,29,0.95) 100%);
+            transition: all 0.15s ease-in-out;
+            border-left: 3px solid #d4af37;
+        }
+        .deck-card-strip:hover {
+            transform: translateX(3px);
+            border-left-color: #00e5ff;
+            background: linear-gradient(90deg, rgba(28,38,54,0.98) 0%, rgba(38,52,74,0.9) 100%);
+        }
+
+        /* Card Tile Aspect Ratio */
+        .card-tile-img {
+            aspect-ratio: 488 / 680;
+            object-fit: cover;
+            border-radius: 0.375rem;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .card-tile-container:hover .card-tile-img {
+            transform: translateY(-4px) scale(1.02);
+        }
+
+        /* Mana Symbol Badges */
+        .mana-pip {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .pip-W { background: #fffbd5; color: #333; }
+        .pip-U { background: #0e86d4; color: #fff; }
+        .pip-B { background: #212121; color: #ccc; border-color: #555; }
+        .pip-R { background: #d32f2f; color: #fff; }
+        .pip-G { background: #2e7d32; color: #fff; }
+        .pip-C { background: #9e9e9e; color: #111; }
+        .pip-M { background: linear-gradient(135deg, #fbc02d, #e64a19, #0288d1); color: #fff; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-arena-bg text-arena-text">
+
+    <!-- TOP ARENA NAVBAR -->
+    <header class="h-14 border-b border-arena-border bg-arena-panel flex items-center justify-between px-4 sticky top-0 z-40 select-none">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid font-cinzel text-arena-gold text-2xl fa-shield-halved"></i>
+                <span class="font-cinzel font-extrabold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-arena-goldLight via-arena-gold to-arena-goldDark">
+                    ARENA LEDGER
+                </span>
+            </div>
+            
+            <nav class="hidden md:flex space-x-1 ml-6 text-sm font-medium">
+                <button id="nav-deckbuilder" onclick="switchTab('builder')" class="px-3 py-1.5 rounded-t-md border-b-2 border-arena-cyan text-arena-cyan bg-arena-border/30 flex items-center space-x-2">
+                    <i class="fa-solid fa-layer-group"></i> <span>Deckbuilder</span>
+                </button>
+                <button id="nav-samplehand" onclick="switchTab('playtest')" class="px-3 py-1.5 rounded-t-md border-b-2 border-transparent text-arena-muted hover:text-white hover:bg-arena-border/20 flex items-center space-x-2">
+                    <i class="fa-solid fa-hand-sparkles"></i> <span>Sample Hand</span>
+                </button>
+                <button id="nav-admin" onclick="switchTab('admin')" class="px-3 py-1.5 rounded-t-md border-b-2 border-transparent text-arena-muted hover:text-white hover:bg-arena-border/20 flex items-center space-x-2">
+                    <i class="fa-solid fa-sliders"></i> <span>System / Auth</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Right Quick Controls -->
+        <div class="flex items-center space-x-3 text-xs">
+            <button onclick="openImportModal()" class="px-3 py-1.5 bg-arena-border hover:bg-arena-border/80 border border-arena-gold/50 text-arena-goldLight rounded flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-file-import"></i>
+                <span>Import CSV/Deck</span>
+            </button>
+            <button onclick="confirmClearDeck()" class="px-3 py-1.5 bg-red-950/60 hover:bg-red-900 border border-red-700/50 text-red-300 rounded flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>Clear Deck</span>
+            </button>
+            <div id="auth-badge" class="px-2.5 py-1 bg-arena-cardBg border border-arena-border rounded text-arena-muted flex items-center space-x-1">
+                <i class="fa-solid fa-user-shield text-arena-gold"></i>
+                <span id="user-status">Guest Session</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTENT AREA -->
+    <main id="main-content" class="flex-1 flex overflow-hidden">
+        
+        <!-- ================= PAGE 1: ARENA DUAL-PANE DECKBUILDER ================= -->
+        <div id="tab-builder" class="flex-1 flex w-full overflow-hidden">
+            
+            <!-- LEFT PANE: COLLECTION MATRIX (72% Width) -->
+            <section class="w-full lg:w-[73%] flex flex-col border-r border-arena-border bg-arena-bg overflow-hidden">
+                
+                <!-- ARENA FILTER BAR -->
+                <div class="p-3 bg-arena-panel border-b border-arena-border space-y-2 select-none">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        
+                        <!-- Search Box -->
+                        <div class="relative flex-1 min-w-[200px]">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-arena-muted"></i>
+                            <input type="text" id="search-input" oninput="debounceSearch()" placeholder="Search card name, text, or type... (e.g. 'Dragon', 'Counterspell')" 
+                                   class="w-full bg-arena-bg border border-arena-border focus:border-arena-cyan focus:outline-none rounded pl-9 pr-8 py-1.5 text-sm text-arena-text placeholder-arena-muted/60">
+                            <button id="search-clear" onclick="clearSearch()" class="hidden absolute right-2.5 top-2 text-arena-muted hover:text-white">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <!-- Color Identity Pips -->
+                        <div class="flex items-center space-x-1 bg-arena-bg p-1 rounded border border-arena-border">
+                            <button onclick="toggleColorFilter('W')" id="btn-color-W" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-W opacity-40 hover:opacity-100 transition">W</button>
+                            <button onclick="toggleColorFilter('U')" id="btn-color-U" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-U opacity-40 hover:opacity-100 transition">U</button>
+                            <button onclick="toggleColorFilter('B')" id="btn-color-B" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-B opacity-40 hover:opacity-100 transition">B</button>
+                            <button onclick="toggleColorFilter('R')" id="btn-color-R" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-R opacity-40 hover:opacity-100 transition">R</button>
+                            <button onclick="toggleColorFilter('G')" id="btn-color-G" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-G opacity-40 hover:opacity-100 transition">G</button>
+                            <button onclick="toggleColorFilter('C')" id="btn-color-C" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-C opacity-40 hover:opacity-100 transition">C</button>
+                            <button onclick="toggleColorFilter('M')" id="btn-color-M" class="w-7 h-7 rounded flex items-center justify-center font-bold text-xs pip-M opacity-40 hover:opacity-100 transition">M</button>
+                        </div>
+
+                        <!-- Mana Cost Filters (CMC 0-7+) -->
+                        <div class="flex items-center space-x-1 bg-arena-bg p-1 rounded border border-arena-border text-xs font-semibold">
+                            <button onclick="toggleCmcFilter(0)" id="cmc-0" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">0</button>
+                            <button onclick="toggleCmcFilter(1)" id="cmc-1" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">1</button>
+                            <button onclick="toggleCmcFilter(2)" id="cmc-2" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">2</button>
+                            <button onclick="toggleCmcFilter(3)" id="cmc-3" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">3</button>
+                            <button onclick="toggleCmcFilter(4)" id="cmc-4" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">4</button>
+                            <button onclick="toggleCmcFilter(5)" id="cmc-5" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">5</button>
+                            <button onclick="toggleCmcFilter(6)" id="cmc-6" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">6</button>
+                            <button onclick="toggleCmcFilter(7)" id="cmc-7" class="w-6 h-6 rounded bg-arena-border/50 hover:bg-arena-gold/30 text-arena-muted hover:text-white transition">7+</button>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Filter Line: Type tabs & Format Selection -->
+                    <div class="flex items-center justify-between text-xs pt-1 border-t border-arena-border/40">
+                        <div class="flex space-x-2 overflow-x-auto py-0.5">
+                            <button onclick="setTypeFilter('ALL')" id="type-ALL" class="px-2 py-0.5 rounded text-arena-gold border border-arena-gold/40 bg-arena-gold/10 font-medium">All Types</button>
+                            <button onclick="setTypeFilter('Creature')" id="type-Creature" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Creatures</button>
+                            <button onclick="setTypeFilter('Instant')" id="type-Instant" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Instants</button>
+                            <button onclick="setTypeFilter('Sorcery')" id="type-Sorcery" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Sorceries</button>
+                            <button onclick="setTypeFilter('Planeswalker')" id="type-Planeswalker" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Planeswalkers</button>
+                            <button onclick="setTypeFilter('Enchantment')" id="type-Enchantment" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Enchantments</button>
+                            <button onclick="setTypeFilter('Artifact')" id="type-Artifact" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Artifacts</button>
+                            <button onclick="setTypeFilter('Land')" id="type-Land" class="px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40">Lands</button>
+                        </div>
+
+                        <div class="flex items-center space-x-2 min-w-max pl-2">
+                            <label class="text-arena-muted text-[11px]">Format:</label>
+                            <select id="format-select" onchange="renderCollection()" class="bg-arena-bg border border-arena-border text-arena-text text-xs rounded px-1.5 py-0.5 focus:outline-none">
+                                <option value="commander" selected>Commander / Brawl (100)</option>
+                                <option value="standard">Standard (60)</option>
+                                <option value="modern">Modern / Pioneer (60)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLLECTION GRID CONTAINER -->
+                <div class="flex-1 overflow-y-auto p-4 arena-panel-inset relative">
+                    <!-- Loading overlay -->
+                    <div id="collection-spinner" class="hidden absolute inset-0 bg-arena-bg/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center space-y-3">
+                        <i class="fa-solid fa-circle-notch fa-spin text-3xl text-arena-gold"></i>
+                        <span class="text-sm font-medium text-arena-goldLight">Fetching Scryfall Arcana...</span>
+                    </div>
+
+                    <!-- Card Matrix Grid -->
+                    <div id="collection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                        <!-- Cards injected via JavaScript -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="collection-empty" class="hidden flex flex-col items-center justify-center h-64 text-center text-arena-muted space-y-2">
+                        <i class="fa-solid fa-box-open text-4xl mb-2 text-arena-border"></i>
+                        <p class="font-semibold text-arena-text">No MTG cards matched your criteria.</p>
+                        <p class="text-xs">Try adjusting your filters or search for another card name above.</p>
+                    </div>
+                </div>
+
+                <!-- COLLECTION FOOTER / PAGINATION -->
+                <div class="p-2.5 bg-arena-panel border-t border-arena-border flex items-center justify-between text-xs text-arena-muted">
+                    <span id="collection-count-label">Showing 0 cards</span>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="fetchScryfallPreset('standard')" class="hover:text-arena-gold transition"><i class="fa-solid fa-sync"></i> Reload Standard Staples</button>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- RIGHT PANE: VERTICAL DECKLIST PANEL (28% Width) -->
+            <section class="w-full lg:w-[27%] flex flex-col bg-arena-panel overflow-hidden border-l border-arena-border">
+                
+                <!-- DECK HEADER & STATS ENGINE -->
+                <div class="p-3 bg-arena-cardBg border-b border-arena-border space-y-3">
+                    <div class="flex items-center justify-between">
+                        <input type="text" id="deck-name-input" value="My Arena Deck" class="bg-transparent font-cinzel font-bold text-arena-gold text-base focus:outline-none border-b border-transparent focus:border-arena-gold w-3/4">
+                        <div class="flex items-center space-x-1">
+                            <button onclick="exportDeckList()" title="Export Text/Archidekt" class="p-1.5 hover:bg-arena-border rounded text-arena-muted hover:text-white">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mainboard Count Indicator -->
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-arena-muted">Cards in Deck:</span>
+                        <div class="font-bold text-sm">
+                            <span id="deck-total-count" class="text-arena-cyan">0</span>
+                            <span id="deck-target-max" class="text-arena-muted">/ 100</span>
+                        </div>
+                    </div>
+
+                    <!-- ARENA MANA CURVE HISTOGRAM -->
+                    <div class="space-y-1">
+                        <div class="flex items-end justify-between h-14 px-1 pt-2 pb-0 bg-arena-bg/70 rounded border border-arena-border/50" id="mana-curve-bars">
+                            <!-- Bars 1 to 7+ rendered via JavaScript -->
+                        </div>
+                        <div class="flex justify-between text-[10px] text-arena-muted px-2">
+                            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7+</span>
+                        </div>
+                    </div>
+
+                    <!-- COLOR PIP BALANCE DISTRIBUTION BAR -->
+                    <div class="space-y-1 pt-1">
+                        <div class="flex justify-between text-[10px] text-arena-muted">
+                            <span>Color Balance</span>
+                            <span id="color-pip-ratios">W:0 U:0 B:0 R:0 G:0</span>
+                        </div>
+                        <div id="color-distribution-bar" class="h-2 w-full bg-arena-bg rounded-full overflow-hidden flex">
+                            <!-- Multi-color breakdown bar width % -->
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- STACKED ARENA DECK LIST (SCROLLABLE STRIPS) -->
+                <div class="flex-1 overflow-y-auto p-2 space-y-4">
+                    
+                    <!-- Commander / Companion Section -->
+                    <div id="section-commander-container" class="space-y-1">
+                        <div class="flex items-center justify-between text-[11px] font-cinzel text-arena-gold tracking-wider px-1">
+                            <span>COMMANDER / COMPANION</span>
+                            <span id="count-commander" class="text-arena-muted">0</span>
+                        </div>
+                        <div id="list-commander" class="space-y-1">
+                            <!-- Strips injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Mainboard Section -->
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between text-[11px] font-cinzel text-arena-gold tracking-wider px-1">
+                            <span>MAINBOARD</span>
+                            <span id="count-mainboard" class="text-arena-muted">0</span>
+                        </div>
+                        <div id="list-mainboard" class="space-y-1">
+                            <!-- Strips injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Sideboard / Maybeboard Section -->
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between text-[11px] font-cinzel text-arena-gold tracking-wider px-1">
+                            <span>SIDEBOARD / MAYBE</span>
+                            <span id="count-sideboard" class="text-arena-muted">0</span>
+                        </div>
+                        <div id="list-sideboard" class="space-y-1">
+                            <!-- Strips injected here -->
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- DECK ACTION FOOTER -->
+                <div class="p-2.5 bg-arena-cardBg border-t border-arena-border flex items-center justify-between">
+                    <button onclick="switchTab('playtest')" class="w-full py-2 bg-gradient-to-r from-arena-goldDark to-arena-gold text-arena-bg font-cinzel font-bold text-xs rounded hover:brightness-110 shadow transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play text-xs"></i>
+                        <span>TEST SAMPLE HAND</span>
+                    </button>
+                </div>
+            </section>
+
+        </div>
+
+
+        <!-- ================= PAGE 2: SAMPLE HAND / PLAYTESTER ================= -->
+        <div id="tab-playtest" class="hidden flex-1 flex flex-col bg-arena-bg p-6 overflow-y-auto">
+            <div class="max-w-6xl mx-auto w-full space-y-6">
+                
+                <!-- Controls Header -->
+                <div class="flex flex-wrap items-center justify-between bg-arena-panel p-4 rounded-lg border border-arena-border gap-4">
+                    <div>
+                        <h2 class="font-cinzel text-xl font-bold text-arena-gold">Arena Sample Hand Simulator</h2>
+                        <p class="text-xs text-arena-muted">Test opening hand probabilities, mulligans, and draw steps for your current deck list.</p>
+                    </div>
+
+                    <div class="flex items-center space-x-3">
+                        <button onclick="drawOpeningHand()" class="px-4 py-2 bg-arena-gold text-arena-bg font-bold rounded text-xs hover:bg-arena-goldLight transition flex items-center space-x-2">
+                            <i class="fa-solid fa-rotate-right"></i>
+                            <span>New 7-Card Hand</span>
+                        </button>
+                        <button onclick="drawOneCard()" class="px-4 py-2 bg-arena-border hover:bg-arena-border/80 border border-arena-cyan/50 text-arena-cyan rounded text-xs transition flex items-center space-x-2">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Draw 1 Card</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hand Display -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="font-cinzel text-arena-goldLight">Current Hand (<span id="playtest-hand-count">0</span> cards)</span>
+                        <span id="playtest-deck-rem" class="text-arena-muted text-xs">Library remaining: 0</span>
+                    </div>
+
+                    <div id="playtest-hand-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 min-h-[220px] p-4 bg-arena-panel/50 rounded-lg border border-arena-border/60">
+                        <!-- Card Images injected here -->
+                    </div>
+                </div>
+
+                <!-- Playtest Analytics Panel -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-arena-panel p-4 rounded border border-arena-border space-y-2">
+                        <h3 class="font-cinzel text-sm text-arena-gold font-semibold">Land Odds</h3>
+                        <div class="text-2xl font-bold text-arena-text" id="odds-lands">0 Lands</div>
+                        <p class="text-xs text-arena-muted">Number of lands in opening 7 cards.</p>
+                    </div>
+                    <div class="bg-arena-panel p-4 rounded border border-arena-border space-y-2">
+                        <h3 class="font-cinzel text-sm text-arena-gold font-semibold">Average CMC</h3>
+                        <div class="text-2xl font-bold text-arena-cyan" id="odds-avg-cmc">0.0</div>
+                        <p class="text-xs text-arena-muted">Mana cost average of current hand.</p>
+                    </div>
+                    <div class="bg-arena-panel p-4 rounded border border-arena-border space-y-2">
+                        <h3 class="font-cinzel text-sm text-arena-gold font-semibold">Playability Check</h3>
+                        <div class="text-sm font-medium text-arena-goldLight" id="odds-status">Ready</div>
+                        <p class="text-xs text-arena-muted">Calculated using Arena deck distribution.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- ================= PAGE 3: ADMIN & AUTH SETTINGS ================= -->
+        <div id="tab-admin" class="hidden flex-1 flex flex-col bg-arena-bg p-6 overflow-y-auto">
+            <div class="max-w-4xl mx-auto w-full space-y-6">
+                
+                <div class="bg-arena-panel p-6 rounded-lg border border-arena-border space-y-4">
+                    <h2 class="font-cinzel text-xl font-bold text-arena-gold">System Configuration & Cloud Sync</h2>
+                    <p class="text-xs text-arena-muted">Manage your Arena Collection local database, cloud auth tokens, and Archidekt importer options.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-arena-border">
+                        <!-- Storage Status -->
+                        <div class="p-4 bg-arena-bg rounded border border-arena-border space-y-2">
+                            <h3 class="font-semibold text-sm text-arena-goldLight"><i class="fa-solid fa-database mr-2"></i>Local Ledger Storage</h3>
+                            <p class="text-xs text-arena-muted">Decks and cached collection are automatically saved in local browser state.</p>
+                            <div class="pt-2 flex space-x-2">
+                                <button onclick="saveDeckToStorage()" class="px-3 py-1.5 bg-arena-gold text-arena-bg font-bold text-xs rounded hover:bg-arena-goldLight">Save Progress</button>
+                                <button onclick="clearLocalStorage()" class="px-3 py-1.5 bg-red-900/60 text-red-200 text-xs rounded hover:bg-red-800">Reset Local Memory</button>
+                            </div>
+                        </div>
+
+                        <!-- Scryfall API Controls -->
+                        <div class="p-4 bg-arena-bg rounded border border-arena-border space-y-2">
+                            <h3 class="font-semibold text-sm text-arena-goldLight"><i class="fa-solid fa-cloud-arrow-down mr-2"></i>Scryfall Cache Engine</h3>
+                            <p class="text-xs text-arena-muted">Fetch fresh card datasets directly from Scryfall API.</p>
+                            <div class="pt-2">
+                                <button onclick="fetchScryfallPreset('commander')" class="px-3 py-1.5 bg-arena-border text-arena-text border border-arena-cyan/40 text-xs rounded hover:border-arena-cyan">Load Commander Staples</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+
+    <!-- ================= FULL RESOLUTION CARD INSPECT MODAL ================= -->
+    <div id="inspect-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-arena-panel border border-arena-gold rounded-lg p-4 max-w-md w-full relative space-y-4 shadow-2xl">
+            <button onclick="closeInspectModal()" class="absolute top-2 right-2 text-arena-muted hover:text-white w-8 h-8 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="text-center">
+                <h3 id="inspect-title" class="font-cinzel text-lg font-bold text-arena-gold">Card Title</h3>
+                <p id="inspect-type" class="text-xs text-arena-muted">Card Type</p>
+            </div>
+            <div class="flex justify-center">
+                <img id="inspect-img" src="" alt="Card Art" class="w-64 rounded-lg shadow-lg border border-arena-border">
+            </div>
+            <div class="flex justify-center space-x-3 pt-2">
+                <button id="inspect-add-btn" class="px-4 py-2 bg-arena-gold text-arena-bg font-bold text-xs rounded hover:bg-arena-goldLight">Add to Deck</button>
+                <button onclick="closeInspectModal()" class="px-4 py-2 bg-arena-border text-arena-text text-xs rounded hover:bg-arena-border/80">Close</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= ARCHIDEKT / CSV IMPORT MODAL ================= -->
+    <div id="import-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-arena-panel border border-arena-border rounded-lg p-5 max-w-lg w-full space-y-4">
+            <div class="flex justify-between items-center border-b border-arena-border pb-2">
+                <h3 class="font-cinzel text-base font-bold text-arena-gold">Import Archidekt / CSV Decklist</h3>
+                <button onclick="closeImportModal()" class="text-arena-muted hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-arena-muted">Paste your Archidekt text export or standard deck list (Format: "1x Sol Ring" or "Sol Ring").</p>
+            
+            <textarea id="import-textarea" rows="8" placeholder="1 Sol Ring&#10;1 Command Tower&#10;1 Arcane Signet&#10;1 Rhystic Study" 
+                      class="w-full bg-arena-bg border border-arena-border rounded p-3 text-xs text-arena-text focus:border-arena-cyan focus:outline-none font-mono"></textarea>
+            
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeImportModal()" class="px-4 py-1.5 bg-arena-border text-xs text-arena-muted hover:text-white rounded">Cancel</button>
+                <button onclick="processImportText()" class="px-4 py-1.5 bg-arena-gold text-arena-bg font-bold text-xs rounded hover:bg-arena-goldLight">Parse & Import Deck</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT APP LOGIC -->
+    <script>
+        // --- GLOBAL APP STATE ---
+        let collection = [];       // Master card collection pool
+        let activeDeck = [];       // Deck items: { card, count, board: 'mainboard'|'commander'|'sideboard' }
+        let selectedColors = [];   // WUBRG filters
+        let selectedCmc = null;    // CMC filter
+        let selectedType = 'ALL';  // Type tab filter
+        let searchDebounceTimer = null;
+
+        // Default Scryfall Preset Standard Staples
+        const SAMPLE_CARD_DATABASE = [
+            { id: '1', name: 'Sol Ring', mana_cost: '{1}', cmc: 1, type_line: 'Artifact', color_identity: [], image_uris: { normal: 'https://cards.scryfall.io/normal/front/1/b/1b3a453d-24f6-4d55-8025-a131b2685711.jpg' } },
+            { id: '2', name: 'Command Tower', mana_cost: '', cmc: 0, type_line: 'Land', color_identity: [], image_uris: { normal: 'https://cards.scryfall.io/normal/front/7/e/7e41156d-56c3-4234-a122-c430e7ef0f61.jpg' } },
+            { id: '3', name: 'Arcane Signet', mana_cost: '{2}', cmc: 2, type_line: 'Artifact', color_identity: [], image_uris: { normal: 'https://cards.scryfall.io/normal/front/0/e/0e86f91d-0453-4889-8d76-54a8e632e2c5.jpg' } },
+            { id: '4', name: 'Rhystic Study', mana_cost: '{2}{U}', cmc: 3, type_line: 'Enchantment', color_identity: ['U'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/d/6/d663a9a6-8742-4f0e-88c9-710e527d911b.jpg' } },
+            { id: '5', name: 'Counterspell', mana_cost: '{U}{U}', cmc: 2, type_line: 'Instant', color_identity: ['U'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/1/9/1920dae4-fb92-4f19-ae4b-eb3276b8edaa.jpg' } },
+            { id: '6', name: 'Lightning Bolt', mana_cost: '{R}', cmc: 1, type_line: 'Instant', color_identity: ['R'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/f/2/f29ba16f-c8fb-42fe-aabf-87089cb214a7.jpg' } },
+            { id: '7', name: 'Swords to Plowshares', mana_cost: '{W}', cmc: 1, type_line: 'Instant', color_identity: ['W'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/e/0/e0802772-8874-4286-9a5c-5e6f30a47318.jpg' } },
+            { id: '8', name: 'Cultivate', mana_cost: '{2}{G}', cmc: 3, type_line: 'Sorcery', color_identity: ['G'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/8/5/855d6884-25a8-48b8-b118-2e061801d0ad.jpg' } },
+            { id: '9', name: 'Demonic Tutor', mana_cost: '{1}{B}', cmc: 2, type_line: 'Sorcery', color_identity: ['B'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/0/b/0b146adc-829d-4357-9d48-3a8327c1328c.jpg' } },
+            { id: '10', name: 'Atatra, World Render', mana_cost: '{5}{R}{G}', cmc: 7, type_line: 'Legendary Creature — Dragon', color_identity: ['R', 'G'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/d/b/db57b01d-5a70-496e-a6a9-8399581895a9.jpg' } },
+            { id: '11', name: 'Smothering Tithe', mana_cost: '{3}{W}', cmc: 4, type_line: 'Enchantment', color_identity: ['W'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/8/6/861b5889-0183-4bee-afeb-a4b2aa720455.jpg' } },
+            { id: '12', name: 'Cyclonic Rift', mana_cost: '{1}{U}', cmc: 2, type_line: 'Instant', color_identity: ['U'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/c/5/c5211559-67d7-463d-82d2-8a9d186f8742.jpg' } }
+        ];
+
+        // --- INIT APP ---
+        window.onload = function() {
+            collection = [...SAMPLE_CARD_DATABASE];
+            loadSavedDeck();
+            renderCollection();
+            renderDeckPanel();
+            fetchScryfallPreset('commander'); // Background load rich pool
+        };
+
+        // --- TAB NAVIGATION ---
+        function switchTab(tab) {
+            ['builder', 'playtest', 'admin'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (navBtn) {
+                    navBtn.classList.remove('border-arena-cyan', 'text-arena-cyan', 'bg-arena-border/30');
+                    navBtn.classList.add('border-transparent', 'text-arena-muted');
+                }
+            });
+
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tab}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('border-transparent', 'text-arena-muted');
+                activeBtn.classList.add('border-arena-cyan', 'text-arena-cyan', 'bg-arena-border/30');
+            }
+
+            if (tab === 'playtest') {
+                drawOpeningHand();
+            }
+        }
+
+        // --- COLLECTION SEARCH & RENDER ---
+        function renderCollection() {
+            const grid = document.getElementById('collection-grid');
+            const empty = document.getElementById('collection-empty');
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+
+            const filtered = collection.filter(card => {
+                // Text Search
+                if (searchVal && !card.name.toLowerCase().includes(searchVal) && !(card.type_line && card.type_line.toLowerCase().includes(searchVal))) {
+                    return false;
+                }
+                // Color Identity Filter
+                if (selectedColors.length > 0) {
+                    if (selectedColors.includes('C') && card.color_identity.length !== 0) return false;
+                    if (selectedColors.includes('M') && card.color_identity.length < 2) return false;
+                    const singleColors = selectedColors.filter(c => c !== 'C' && c !== 'M');
+                    if (singleColors.length > 0 && !singleColors.some(c => card.color_identity.includes(c))) return false;
+                }
+                // CMC Filter
+                if (selectedCmc !== null) {
+                    if (selectedCmc === 7 && card.cmc < 7) return false;
+                    if (selectedCmc < 7 && card.cmc !== selectedCmc) return false;
+                }
+                // Type Filter
+                if (selectedType !== 'ALL') {
+                    if (!card.type_line || !card.type_line.includes(selectedType)) return false;
+                }
+                return true;
+            });
+
+            document.getElementById('collection-count-label').innerText = `Showing ${filtered.length} cards`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            grid.innerHTML = filtered.map(card => {
+                const img = card.image_uris?.normal || card.image_uris?.small || 'https://placehold.co/250x350/10141d/d4af37?text=MTG+Card';
+                return `
+                    <div class="card-tile-container relative cursor-pointer group" onclick="addCardToDeck('${card.id}')" oncontextmenu="inspectCard(event, '${card.id}')">
+                        <img src="${img}" alt="${card.name}" class="card-tile-img w-full shadow-md rounded border border-arena-border group-hover:border-arena-cyan arena-cyan-glow">
+                        <div class="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition bg-arena-panel/90 px-1.5 py-0.5 rounded text-[10px] text-arena-cyan border border-arena-cyan/40">
+                            + Add Copy
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- DECK PANEL LOGIC & STACKED STRIPS ---
+        function addCardToDeck(cardId, board = 'mainboard') {
+            const card = collection.find(c => c.id === cardId);
+            if (!card) return;
+
+            // Handle Legendary Commander Assignment automatically
+            if (board === 'mainboard' && card.type_line && card.type_line.includes('Legendary Creature') && !activeDeck.some(d => d.board === 'commander')) {
+                board = 'commander';
+            }
+
+            const existing = activeDeck.find(d => d.card.id === cardId && d.board === board);
+            if (existing) {
+                existing.count += 1;
+            } else {
+                activeDeck.push({ card, count: 1, board });
+            }
+
+            saveDeckToStorage();
+            renderDeckPanel();
+        }
+
+        function removeCardFromDeck(cardId, board) {
+            const index = activeDeck.findIndex(d => d.card.id === cardId && d.board === board);
+            if (index !== -1) {
+                if (activeDeck[index].count > 1) {
+                    activeDeck[index].count -= 1;
+                } else {
+                    activeDeck.splice(index, 1);
+                }
+            }
+            saveDeckToStorage();
+            renderDeckPanel();
+        }
+
+        function renderDeckPanel() {
+            const listCommander = document.getElementById('list-commander');
+            const listMainboard = document.getElementById('list-mainboard');
+            const listSideboard = document.getElementById('list-sideboard');
+
+            listCommander.innerHTML = '';
+            listMainboard.innerHTML = '';
+            listSideboard.innerHTML = '';
+
+            let commanderCount = 0, mainCount = 0, sideCount = 0;
+
+            activeDeck.forEach(item => {
+                const total = item.count;
+                const html = `
+                    <div class="deck-card-strip p-1.5 rounded text-xs flex items-center justify-between cursor-pointer select-none"
+                         onclick="removeCardFromDeck('${item.card.id}', '${item.board}')"
+                         oncontextmenu="inspectCard(event, '${item.card.id}')">
+                        <div class="flex items-center space-x-2 truncate">
+                            <span class="w-5 h-5 rounded-full bg-arena-border flex items-center justify-center text-[10px] font-bold text-arena-gold border border-arena-gold/30">
+                                ${item.card.cmc || 0}
+                            </span>
+                            <span class="font-medium text-arena-text truncate">${item.card.name}</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="px-1.5 py-0.5 rounded bg-arena-bg border border-arena-border text-[10px] font-bold text-arena-cyan">
+                                x${item.count}
+                            </span>
+                        </div>
+                    </div>
+                `;
+
+                if (item.board === 'commander') {
+                    listCommander.innerHTML += html;
+                    commanderCount += total;
+                } else if (item.board === 'sideboard') {
+                    listSideboard.innerHTML += html;
+                    sideCount += total;
+                } else {
+                    listMainboard.innerHTML += html;
+                    mainCount += total;
+                }
+            });
+
+            document.getElementById('count-commander').innerText = commanderCount;
+            document.getElementById('count-mainboard').innerText = mainCount;
+            document.getElementById('count-sideboard').innerText = sideCount;
+
+            const totalDeck = commanderCount + mainCount;
+            document.getElementById('deck-total-count').innerText = totalDeck;
+
+            renderManaCurveAndColors();
+        }
+
+        // --- DECK STATS & MANA CURVE HISTOGRAM ---
+        function renderManaCurveAndColors() {
+            const cmcCounts = [0, 0, 0, 0, 0, 0, 0]; // 1 to 7+
+            const colorCounts = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+
+            activeDeck.forEach(item => {
+                if (item.board === 'sideboard') return;
+                const cmc = Math.min(Math.max(item.card.cmc || 0, 1), 7) - 1;
+                cmcCounts[cmc] += item.count;
+
+                (item.card.color_identity || []).forEach(col => {
+                    if (colorCounts[col] !== undefined) colorCounts[col] += item.count;
+                });
+            });
+
+            const maxCmc = Math.max(...cmcCounts, 1);
+            const curveBars = document.getElementById('mana-curve-bars');
+            curveBars.innerHTML = cmcCounts.map(count => {
+                const heightPct = Math.round((count / maxCmc) * 100);
+                return `
+                    <div class="w-full flex flex-col items-center justify-end h-full group">
+                        <span class="text-[9px] text-arena-cyan opacity-0 group-hover:opacity-100">${count}</span>
+                        <div style="height: ${Math.max(heightPct, 8)}%" class="w-3/4 bg-gradient-to-t from-arena-goldDark to-arena-gold rounded-t transition-all"></div>
+                    </div>
+                `;
+            }).join('');
+
+            // Color Distribution Bar
+            const totalPips = Object.values(colorCounts).reduce((a,b) => a+b, 0) || 1;
+            const colBar = document.getElementById('color-distribution-bar');
+            colBar.innerHTML = `
+                <div style="width: ${(colorCounts.W/totalPips)*100}%" class="bg-mtg-white"></div>
+                <div style="width: ${(colorCounts.U/totalPips)*100}%" class="bg-mtg-blue"></div>
+                <div style="width: ${(colorCounts.B/totalPips)*100}%" class="bg-mtg-black"></div>
+                <div style="width: ${(colorCounts.R/totalPips)*100}%" class="bg-mtg-red"></div>
+                <div style="width: ${(colorCounts.G/totalPips)*100}%" class="bg-mtg-green"></div>
+            `;
+            document.getElementById('color-pip-ratios').innerText = `W:${colorCounts.W} U:${colorCounts.U} B:${colorCounts.B} R:${colorCounts.R} G:${colorCounts.G}`;
+        }
+
+        // --- SAMPLE HAND SIMULATOR ---
+        let currentHand = [];
+        let remainingDeck = [];
+
+        function drawOpeningHand() {
+            let deckArray = [];
+            activeDeck.forEach(item => {
+                for (let i = 0; i < item.count; i++) deckArray.push(item.card);
+            });
+
+            // Shuffle
+            deckArray.sort(() => Math.random() - 0.5);
+
+            currentHand = deckArray.slice(0, 7);
+            remainingDeck = deckArray.slice(7);
+
+            renderSampleHand();
+        }
+
+        function drawOneCard() {
+            if (remainingDeck.length === 0) return;
+            currentHand.push(remainingDeck.shift());
+            renderSampleHand();
+        }
+
+        function renderSampleHand() {
+            const grid = document.getElementById('playtest-hand-grid');
+            document.getElementById('playtest-hand-count').innerText = currentHand.length;
+            document.getElementById('playtest-deck-rem').innerText = `Library remaining: ${remainingDeck.length}`;
+
+            grid.innerHTML = currentHand.map(card => `
+                <img src="${card.image_uris?.normal || 'https://placehold.co/250x350/10141d/d4af37?text=MTG+Card'}" 
+                     class="w-full rounded shadow border border-arena-border hover:border-arena-gold transition">
+            `).join('');
+
+            // Analytics
+            const lands = currentHand.filter(c => c.type_line && c.type_line.includes('Land')).length;
+            const totalCmc = currentHand.reduce((acc, c) => acc + (c.cmc || 0), 0);
+            const avgCmc = currentHand.length ? (totalCmc / currentHand.length).toFixed(1) : '0.0';
+
+            document.getElementById('odds-lands').innerText = `${lands} Lands`;
+            document.getElementById('odds-avg-cmc').innerText = avgCmc;
+            document.getElementById('odds-status').innerText = lands >= 2 && lands <= 4 ? 'Optimal Mana Curve' : 'Potential Mulligan Risk';
+        }
+
+        // --- SCRYFALL API FETCH ENGINE ---
+        async function fetchScryfallPreset(format = 'commander') {
+            const spinner = document.getElementById('collection-spinner');
+            spinner.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`https://api.scryfall.com/cards/search?q=f:${format}+is:commander_staple&unique=cards`);
+                const data = await res.json();
+                if (data && data.data) {
+                    collection = data.data.map(c => ({
+                        id: c.id,
+                        name: c.name,
+                        mana_cost: c.mana_cost || '',
+                        cmc: c.cmc || 0,
+                        type_line: c.type_line || '',
+                        color_identity: c.color_identity || [],
+                        image_uris: c.image_uris || (c.card_faces ? c.card_faces[0].image_uris : null)
+                    }));
+                    renderCollection();
+                }
+            } catch (err) {
+                console.error('Scryfall API error, using fallback:', err);
+            } finally {
+                spinner.classList.add('hidden');
+            }
+        }
+
+        // --- INSPECT & MODAL CONTROLS ---
+        function inspectCard(e, cardId) {
+            e.preventDefault();
+            const card = collection.find(c => c.id === cardId) || activeDeck.find(d => d.card.id === cardId)?.card;
+            if (!card) return;
+
+            document.getElementById('inspect-title').innerText = card.name;
+            document.getElementById('inspect-type').innerText = card.type_line;
+            document.getElementById('inspect-img').src = card.image_uris?.normal || '';
+            
+            const addBtn = document.getElementById('inspect-add-btn');
+            addBtn.onclick = () => { addCardToDeck(card.id); closeInspectModal(); };
+
+            document.getElementById('inspect-modal').classList.remove('hidden');
+        }
+
+        function closeInspectModal() {
+            document.getElementById('inspect-modal').classList.add('hidden');
+        }
+
+        // --- FILTERS & SEARCH HELPERS ---
+        function toggleColorFilter(color) {
+            const idx = selectedColors.indexOf(color);
+            if (idx > -1) selectedColors.splice(idx, 1);
+            else selectedColors.push(color);
+
+            ['W','U','B','R','G','C','M'].forEach(c => {
+                const btn = document.getElementById(`btn-color-${c}`);
+                if (selectedColors.includes(c)) btn.classList.remove('opacity-40');
+                else btn.classList.add('opacity-40');
+            });
+            renderCollection();
+        }
+
+        function toggleCmcFilter(cmc) {
+            if (selectedCmc === cmc) selectedCmc = null;
+            else selectedCmc = cmc;
+
+            for (let i = 0; i <= 7; i++) {
+                const btn = document.getElementById(`cmc-${i}`);
+                if (selectedCmc === i) btn.classList.add('bg-arena-gold', 'text-arena-bg');
+                else btn.classList.remove('bg-arena-gold', 'text-arena-bg');
+            }
+            renderCollection();
+        }
+
+        function setTypeFilter(type) {
+            selectedType = type;
+            ['ALL','Creature','Instant','Sorcery','Planeswalker','Enchantment','Artifact','Land'].forEach(t => {
+                const btn = document.getElementById(`type-${t}`);
+                if (t === type) btn.className = 'px-2 py-0.5 rounded text-arena-gold border border-arena-gold/40 bg-arena-gold/10 font-medium';
+                else btn.className = 'px-2 py-0.5 rounded text-arena-muted hover:text-white hover:bg-arena-border/40';
+            });
+            renderCollection();
+        }
+
+        function debounceSearch() {
+            clearTimeout(searchDebounceTimer);
+            document.getElementById('search-clear').classList.toggle('hidden', !document.getElementById('search-input').value);
+            searchDebounceTimer = setTimeout(renderCollection, 200);
+        }
+
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('search-clear').classList.add('hidden');
+            renderCollection();
+        }
+
+        // --- IMPORT / EXPORT DECK ---
+        function openImportModal() { document.getElementById('import-modal').classList.remove('hidden'); }
+        function closeImportModal() { document.getElementById('import-modal').classList.add('hidden'); }
+
+        function processImportText() {
+            const text = document.getElementById('import-textarea').value;
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                const match = line.match(/^(\d+)?x?\s*(.+)$/i);
+                if (match) {
+                    const count = parseInt(match[1]) || 1;
+                    const name = match[2].trim();
+                    const card = collection.find(c => c.name.toLowerCase() === name.toLowerCase());
+                    if (card) {
+                        const existing = activeDeck.find(d => d.card.id === card.id);
+                        if (existing) existing.count += count;
+                        else activeDeck.push({ card, count, board: 'mainboard' });
+                    }
+                }
+            });
+            saveDeckToStorage();
+            renderDeckPanel();
+            closeImportModal();
+        }
+
+        function exportDeckList() {
+            const text = activeDeck.map(d => `${d.count} ${d.card.name}`).join('\n');
+            navigator.clipboard.writeText(text);
+            alert('Decklist copied to clipboard!');
+        }
+
+        function confirmClearDeck() {
+            if (confirm('Are you sure you want to clear your current deck?')) {
+                activeDeck = [];
+                saveDeckToStorage();
+                renderDeckPanel();
+            }
+        }
+
+        // --- PERSISTENCE ---
+        function saveDeckToStorage() {
+            localStorage.setItem('arena_active_deck', JSON.stringify(activeDeck));
+        }
+
+        function loadSavedDeck() {
+            const saved = localStorage.getItem('arena_active_deck');
+            if (saved) {
+                try { activeDeck = JSON.parse(saved); } catch(e){}
+            }
+        }
+
+        function clearLocalStorage() {
+            localStorage.clear();
+            activeDeck = [];
+            renderDeckPanel();
+            alert('Local storage reset successfully.');
+        }
+    </script>
+</body>
+</html>
